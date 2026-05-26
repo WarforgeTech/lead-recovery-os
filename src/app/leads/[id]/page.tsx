@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase-server";
 import { getActiveOrganizationId, requireUser } from "@/lib/data";
 import { segmentLabels, statusLabels } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
   const organizationId = await getActiveOrganizationId();

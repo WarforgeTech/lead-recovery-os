@@ -3,6 +3,8 @@ import { addOrganizationMember } from "@/app/actions";
 import { Badge, Card, PrimaryLink, Shell, Stat } from "@/components/ui";
 import { getOrganizationSummary, requireAdmin } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function OrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const { id } = await params;

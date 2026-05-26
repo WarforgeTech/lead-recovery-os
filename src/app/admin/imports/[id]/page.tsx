@@ -3,6 +3,8 @@ import { Badge, Card, Shell, Stat } from "@/components/ui";
 import { createAdminClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function ImportPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const { id } = await params;

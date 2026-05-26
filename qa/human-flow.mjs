@@ -147,7 +147,8 @@ async function clientJourney(activeBrowser) {
   await page.reload({ waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Approved", "approved status after save");
-  expectIncludes(text, "QA approved follow-up", "edited draft persisted on page");
+  const savedDraft = await page.getByLabel("Draft").inputValue();
+  expectIncludes(savedDraft, "QA approved follow-up", "edited draft persisted on page");
   await screenshot(page, "08-approved-lead-detail.png");
   await writeStep("Approve draft", "pass", "Client edited the draft, approved it, reloaded, and saw the saved state.");
 

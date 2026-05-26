@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { Card, Shell } from "@/components/ui";
 import { getActiveOrganizationId, getClientOpportunities, requireUser } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function ExportsPage() {
   await requireUser();
   const organizationId = await getActiveOrganizationId();

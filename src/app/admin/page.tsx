@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Badge, Card, PrimaryLink, Shell } from "@/components/ui";
 import { getAdminOrganizations, requireAdmin } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   await requireAdmin();
   const organizations = await getAdminOrganizations();

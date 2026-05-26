@@ -4,6 +4,8 @@ import { Badge, Card, Shell, Stat } from "@/components/ui";
 import { getActiveOrganizationId, getClientOpportunities, getMemberships, requireUser } from "@/lib/data";
 import { segmentLabels, statusLabels, type LeadSegment } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   await requireUser();
   const organizationId = await getActiveOrganizationId();

@@ -4,6 +4,8 @@ import { Badge, Card, Shell } from "@/components/ui";
 import { getActiveOrganizationId, getClientOpportunities, requireUser } from "@/lib/data";
 import { segmentLabels, statusLabels } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeadsPage({
   searchParams,
 }: {
