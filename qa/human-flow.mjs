@@ -140,11 +140,13 @@ async function clientJourney(activeBrowser) {
 
   await page.getByRole("link", { name: "Maria Gutierrez" }).first().click();
   await page.waitForURL(/\/leads\/[0-9a-f-]+$/, { timeout: 30000 });
+  const leadDetailUrl = page.url();
   await page.getByLabel("Draft").fill("QA approved follow-up: Maria, checking whether the school-year move is still active.");
   await page.getByLabel("Status").selectOption("approved");
   await page.getByRole("button", { name: "Save review state" }).click();
   await page.waitForLoadState("networkidle");
-  await page.reload({ waitUntil: "networkidle" });
+  await waitForApprovedDraft();
+  await page.goto(`${leadDetailUrl}?fresh=${Date.now()}`, { waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Approved", "approved status after save");
   const savedDraft = await page.getByLabel("Draft").inputValue();
@@ -197,6 +199,22 @@ async function verifyPersistence() {
     "pass",
     `Verified org, import, 4 contacts, ${(opportunitiesResult.data || []).length} opportunities, and approved draft in Supabase.`,
   );
+}
+
+async function waitForApprovedDraft() {
+  const started = Date.now();
+  while (Date.now() - started < 15000) {
+    const { data, error } = await supabase
+      .from("message_drafts")
+      .select("id, approval_status, edited_text")
+      .eq("organization_id", created.organizationId);
+    if (error) throw error;
+    if ((data || []).some((draft) => draft.approval_status === "approved" && draft.edited_text?.includes("QA approved follow-up"))) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error("Approved edited draft did not persist within 15 seconds.");
 }
 
 async function cleanup() {
