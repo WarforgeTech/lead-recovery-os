@@ -15,12 +15,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const supabase = await createClient();
   const { data: opportunity, error } = await supabase
     .from("lead_opportunities")
-    .select("*, contact:contacts(*), drafts:message_drafts(*)")
+    .select("*, contact:contacts(*)")
     .eq("organization_id", organizationId)
     .eq("id", id)
     .single();
   if (error || !opportunity) notFound();
-  const draft = opportunity.drafts?.[0];
+  const { data: draft, error: draftError } = await supabase
+    .from("message_drafts")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("opportunity_id", opportunity.id)
+    .maybeSingle();
+  if (draftError) throw draftError;
 
   return (
     <Shell title={opportunity.contact?.name ?? "Lead detail"}>
