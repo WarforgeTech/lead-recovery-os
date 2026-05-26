@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pipeline Recovery OS
 
-## Getting Started
+Pipeline Recovery OS is an AI-powered lead recovery and follow-up system for agents, brokers, loan officers, and local sales teams.
 
-First, run the development server:
+It finds old leads, past clients, open-house contacts, and referral opportunities sitting untouched, then turns them into a prioritized follow-up queue with human-approved messages.
+
+## What ships in v1
+
+- Public synthetic demo at `/demo`
+- Supabase magic-link login
+- Client workspace dashboard
+- Lead list, lead detail, status review, and draft editing
+- Admin-only organization creation
+- Admin-only CSV import via pasted CSV text
+- Deterministic normalization, dedupe, segmentation, scoring, and draft generation
+- Approved queue CSV export
+- Supabase Postgres RLS for tenant-scoped client data
+
+## What v1 does not do
+
+- No automated signup
+- No Stripe
+- No outbound SMS or email sending
+- No real AI processing of client PII
+- No public upload on `/demo`
+- No analytics or tracking scripts
+
+## Local setup
 
 ```bash
+npm install
+cp .env.local.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+ADMIN_EMAILS=mark@warforge.tech
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase
 
-## Learn More
+Hosted project: `Pipeline Recovery OS`
 
-To learn more about Next.js, take a look at the following resources:
+Apply migrations:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+supabase link --project-ref pozkwipdqywmytbfvkas
+supabase db push --dns-resolver https
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Manual smoke test
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `/demo` loads publicly and shows synthetic 3,000-contact economics.
+- `/login` sends a Supabase magic link.
+- Invited users can reach `/dashboard`.
+- Users without a membership land on `/no-workspace`.
+- Admin can create an organization.
+- Admin can process a CSV import.
+- Leads render in `/leads`.
+- A lead detail draft can be edited and approved.
+- `/exports` downloads approved records as CSV.
