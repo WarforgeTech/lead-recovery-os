@@ -8,6 +8,14 @@ Daniel Brooks,daniel@example.com,2815550102,Website valuation,seller,Katy,$515K,
 Priya Shah,priya@example.com,8325550103,Zillow inquiry,buyer,Energy Corridor,$310K-$360K,Six to nine months,2025-10-12,review,Avery,Asked about townhomes and HOA comparison
 Lisa Nguyen,lisa@example.com,3465550104,Closed client,past client,Spring Branch,$8.3K referral scenario,Past client,2025-03-15,opt-in,Avery,No review or annual check-in logged`;
 
+const mortgageSampleCsv = `name,email,phone,source,current status,loan goal,estimated loan amount,referral source,missing next step,last meaningful contact,consent,assigned owner,notes
+Jordan Miles,jordan@example.com,7135550201,Realtor referral,talked no application,purchase,520000,Elena Park,finish application,2026-05-14,opt-in,Adam,Had purchase consult and asked for application link but has not submitted
+Taylor Reed,taylor@example.com,2815550202,Website lead,application started,purchase,410000,Google Ads,complete application,2026-05-08,opt-in,Janine,Application started but borrower got stuck on income section
+Monica Patel,monica@example.com,8325550203,Past client,closed client,refi check-in,385000,Past client,annual mortgage review,2026-04-30,opt-in,Adam,Closed in 2023 and asked whether a refi review would make sense later
+Chris Howard,chris@example.com,3465550204,Realtor partner,referral partner,partner nurture,0,Rachel Gomez,partner check-in,2026-05-01,opt-in,Adam,Agent sends first-time buyers but has not heard from Adam this month
+Nina Alvarez,nina@example.com,7135550205,Phone consult,docs missing,purchase,610000,Open house partner,bank statements and signatures,2026-05-03,opt-in,Janine,Borrower is confused by bank statement upload and e-signature step
+Andre Coleman,andre@example.com,2815550206,Old CRM,lost stale,purchase,455000,Facebook lead,restart application,2026-04-18,opt-in,Adam,Talked through FHA path then went quiet before submitting application`;
+
 export default async function NewImportPage({
   searchParams,
 }: {
@@ -16,6 +24,8 @@ export default async function NewImportPage({
   await requireAdmin();
   const params = await searchParams;
   const organizations = await getAdminOrganizations();
+  const selectedOrganization = organizations.find((org) => org.id === params.organization_id) ?? organizations[0];
+  const isMortgage = selectedOrganization?.pipeline_template === "mortgage_growth";
 
   return (
     <Shell title="Import contacts">
@@ -26,7 +36,7 @@ export default async function NewImportPage({
             <select
               name="organization_id"
               required
-              defaultValue={params.organization_id ?? organizations[0]?.id}
+              defaultValue={selectedOrganization?.id}
               className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3"
             >
               {organizations.map((org) => (
@@ -48,7 +58,7 @@ export default async function NewImportPage({
               name="csv"
               rows={12}
               required
-              defaultValue={sampleCsv}
+              defaultValue={isMortgage ? mortgageSampleCsv : sampleCsv}
               className="mt-2 w-full rounded-md border border-zinc-300 p-3 font-mono text-sm leading-6"
             />
           </label>
@@ -68,6 +78,13 @@ export default async function NewImportPage({
                 ["map_consent", "Consent"],
                 ["map_owner", "Owner"],
                 ["map_notes", "Notes"],
+                ["map_current_status", "Current status"],
+                ["map_loan_intent", "Loan goal / intent"],
+                ["map_estimated_loan_amount", "Estimated loan amount"],
+                ["map_referral_source", "Referral source"],
+                ["map_missing_next_step", "Missing next step"],
+                ["map_last_meaningful_contact", "Last meaningful contact"],
+                ["map_docs_missing", "Docs missing"],
               ].map(([name, label]) => (
                 <label key={name} className="block">
                   <span className="text-xs font-medium text-zinc-500">{label}</span>

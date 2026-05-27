@@ -14,6 +14,7 @@ export type ImportContact = {
   ownerName: string | null;
   rawNotes: string | null;
   normalizedSummary: string;
+  pipelineMetadata?: Record<string, string | number | boolean | null>;
 };
 
 export function normalizePhone(value: unknown) {

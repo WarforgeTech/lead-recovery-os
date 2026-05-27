@@ -18,7 +18,7 @@ export async function getMemberships() {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organization_members")
-    .select("role, organization:organizations(id, name, client_type, status, market)")
+    .select("role, organization:organizations(id, name, client_type, status, market, pipeline_template, organization_settings)")
     .order("created_at", { ascending: true });
 
   if (error) throw error;

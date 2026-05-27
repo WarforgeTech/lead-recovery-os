@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Badge, Card, Shell } from "@/components/ui";
-import { getActiveOrganizationId, getClientOpportunities, requireUser } from "@/lib/data";
+import { getActiveOrganizationId, getClientOpportunities, getMemberships, requireUser } from "@/lib/data";
+import { getPipelineTemplate } from "@/lib/pipeline-templates";
 import { statusLabels } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -9,14 +10,19 @@ export default async function QueuePage() {
   await requireUser();
   const organizationId = await getActiveOrganizationId();
   if (!organizationId) redirect("/no-workspace");
+  const memberships = await getMemberships();
+  const organization = memberships[0]?.organization as { pipeline_template?: string } | undefined;
+  const template = getPipelineTemplate(organization?.pipeline_template);
   const opportunities = await getClientOpportunities(organizationId);
   const queue = opportunities.filter((item) => !["do_not_contact", "closed_lost"].includes(item.status)).slice(0, 50);
 
   return (
-    <Shell title="Follow-up queue">
+    <Shell title={template.id === "mortgage_growth" ? "Next-best-action queue" : "Follow-up queue"}>
       <Card>
         <p className="text-sm leading-6 text-zinc-600">
-          Prioritized records for human review. Nothing is sent from Pipeline Recovery OS in v1.
+          {template.id === "mortgage_growth"
+            ? "Who to contact today, why they matter, what next step is needed, and what message should be reviewed."
+            : "Prioritized records for human review. Nothing is sent from Pipeline Recovery OS in v1."}
         </p>
         <div className="mt-5 space-y-3">
           {queue.map((item, index) => (

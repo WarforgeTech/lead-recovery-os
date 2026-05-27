@@ -5,17 +5,15 @@ import { redirect } from "next/navigation";
 import { archiveImportCsv } from "@/lib/import-archive";
 import { refineFollowUpDraft } from "@/lib/ai-drafts";
 import { parseCsv, inferMapping, applyMapping, type Mapping } from "@/lib/csv";
-import {
-  draftFor,
-  recommendedAction,
-  scoreContact,
-  segmentContact,
-  statusFor,
-} from "@/lib/lead-processing";
 import { createAdminClient, createClient } from "@/lib/supabase-server";
 import { requireAdmin, requireUser } from "@/lib/data";
 import { traceAsync } from "@/lib/tracing";
 import type { OpportunityStatus } from "@/lib/types";
+import {
+  classifyPipelineOpportunity,
+  defaultOrganizationSettings,
+  getPipelineTemplateId,
+} from "@/lib/pipeline-templates";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -28,15 +26,23 @@ export async function createOrganization(formData: FormData) {
   const admin = createAdminClient();
   const name = String(formData.get("name") ?? "").trim();
   const clientType = String(formData.get("client_type") ?? "agent").trim();
+  const pipelineTemplate = getPipelineTemplateId(String(formData.get("pipeline_template") ?? "real_estate_default"));
   const market = String(formData.get("market") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (!name) throw new Error("Organization name is required");
 
-  const org = await traceAsync("organization.create", { client_type: clientType, has_client_email: Boolean(email) }, async () => {
+  const org = await traceAsync("organization.create", { client_type: clientType, pipeline_template: pipelineTemplate, has_client_email: Boolean(email) }, async () => {
     const { data: createdOrg, error } = await admin
       .from("organizations")
-      .insert({ name, client_type: clientType, market, status: "pilot" })
+      .insert({
+        name,
+        client_type: clientType,
+        pipeline_template: pipelineTemplate,
+        organization_settings: defaultOrganizationSettings(pipelineTemplate),
+        market,
+        status: "pilot",
+      })
       .select()
       .single();
     if (error) throw error;
@@ -53,7 +59,7 @@ export async function createOrganization(formData: FormData) {
       organization_id: createdOrg.id,
       actor_user_id: user.id,
       event: "organization_created",
-      metadata: { name, email },
+      metadata: { name, email, pipeline_template: pipelineTemplate },
     });
 
     return createdOrg;
@@ -95,6 +101,13 @@ export async function importContacts(formData: FormData) {
   if (!organizationId || !csvText.trim()) throw new Error("Organization and CSV are required");
 
   const importRow = await traceAsync("import.process", { organization_id: organizationId }, async () => {
+    const { data: organization, error: organizationError } = await admin
+      .from("organizations")
+      .select("pipeline_template")
+      .eq("id", organizationId)
+      .single();
+    if (organizationError) throw organizationError;
+    const templateId = getPipelineTemplateId(organization.pipeline_template);
     const rows = parseCsv(csvText);
     const headers = Object.keys(rows[0] ?? {});
     const inferred = inferMapping(headers);
@@ -111,6 +124,13 @@ export async function importContacts(formData: FormData) {
       consent: field(formData, "map_consent") || inferred.consent,
       ownerName: field(formData, "map_owner") || inferred.ownerName,
       notes: field(formData, "map_notes") || inferred.notes,
+      currentStatus: field(formData, "map_current_status") || inferred.currentStatus,
+      loanIntent: field(formData, "map_loan_intent") || inferred.loanIntent,
+      estimatedLoanAmount: field(formData, "map_estimated_loan_amount") || inferred.estimatedLoanAmount,
+      referralSource: field(formData, "map_referral_source") || inferred.referralSource,
+      missingNextStep: field(formData, "map_missing_next_step") || inferred.missingNextStep,
+      lastMeaningfulContact: field(formData, "map_last_meaningful_contact") || inferred.lastMeaningfulContact,
+      docsMissing: field(formData, "map_docs_missing") || inferred.docsMissing,
     };
 
     const contacts = applyMapping(rows, mapping);
@@ -134,8 +154,8 @@ export async function importContacts(formData: FormData) {
 
     const processedContacts = Array.from(unique.values());
     const priorityCount = processedContacts.filter((contact) => {
-      const segment = segmentContact(contact);
-      return segment !== "needs_consent" && scoreContact(contact, segment) >= 70;
+      const classification = classifyPipelineOpportunity(contact, templateId);
+      return classification.segment !== "needs_consent" && classification.priorityScore >= 70;
     }).length;
 
     const { data: createdImport, error: importError } = await admin
@@ -149,7 +169,7 @@ export async function importContacts(formData: FormData) {
         raw_file_url: archive.url,
         archived_at: archive.archivedAt,
         status: "processed",
-        mapping,
+        mapping: { ...mapping, pipeline_template: templateId },
         total_rows: rows.length,
         processed_rows: processedContacts.length,
         duplicate_rows: duplicates,
@@ -163,8 +183,7 @@ export async function importContacts(formData: FormData) {
     if (importError) throw importError;
 
     for (const contact of processedContacts) {
-      const segment = segmentContact(contact);
-      const priorityScore = scoreContact(contact, segment);
+      const classification = classifyPipelineOpportunity(contact, templateId);
       const { data: insertedContact, error: contactError } = await admin
         .from("contacts")
         .insert({
@@ -183,6 +202,7 @@ export async function importContacts(formData: FormData) {
           owner_name: contact.ownerName,
           raw_notes: contact.rawNotes,
           normalized_summary: contact.normalizedSummary,
+          pipeline_metadata: classification.contactMetadata,
         })
         .select()
         .single();
@@ -193,17 +213,18 @@ export async function importContacts(formData: FormData) {
         .insert({
           organization_id: organizationId,
           contact_id: insertedContact.id,
-          segment,
-          status: statusFor(segment, contact.consent),
-          priority_score: priorityScore,
-          estimated_value_cents: 830000,
-          recommended_action: recommendedAction(segment, contact.consent),
+          segment: classification.segment,
+          status: classification.status,
+          priority_score: classification.priorityScore,
+          estimated_value_cents: classification.estimatedValueCents,
+          recommended_action: classification.recommendedAction,
+          pipeline_metadata: classification.opportunityMetadata,
         })
         .select()
         .single();
       if (opportunityError) throw opportunityError;
 
-      const draft = draftFor(contact, segment);
+      const draft = classification.draftText;
       if (draft) {
         const { error: draftError } = await admin.from("message_drafts").insert({
           organization_id: organizationId,

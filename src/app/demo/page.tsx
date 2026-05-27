@@ -22,6 +22,7 @@ export default function DemoPage() {
           </div>
           <div className="flex gap-3">
             <SecondaryLink href="/">Home</SecondaryLink>
+            <SecondaryLink href="/demo/mortgage">Mortgage demo</SecondaryLink>
             <PrimaryLink href="mailto:mark@warforge.tech?subject=Pipeline%20Recovery%20OS%20workflow%20call">
               Book a 15-minute workflow call
             </PrimaryLink>

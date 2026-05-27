@@ -77,8 +77,13 @@ export function Shell({
           </Link>
           <nav className="flex flex-wrap items-center gap-3 text-sm text-zinc-600">
             <Link href="/dashboard" className="hover:text-zinc-950">Dashboard</Link>
-            <Link href="/leads" className="hover:text-zinc-950">Leads</Link>
+            <Link href="/pipeline" className="hover:text-zinc-950">Pipeline</Link>
+            <Link href="/rescue" className="hover:text-zinc-950">Rescue</Link>
+            <Link href="/tasks" className="hover:text-zinc-950">Tasks</Link>
+            <Link href="/partners" className="hover:text-zinc-950">Partners</Link>
             <Link href="/queue" className="hover:text-zinc-950">Queue</Link>
+            <Link href="/rollup" className="hover:text-zinc-950">Rollup</Link>
+            <Link href="/leads" className="hover:text-zinc-950">Leads</Link>
             <Link href="/exports" className="hover:text-zinc-950">Exports</Link>
             <Link href="/settings" className="hover:text-zinc-950">Settings</Link>
             {actions}

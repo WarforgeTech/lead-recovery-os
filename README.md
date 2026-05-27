@@ -7,10 +7,12 @@ It finds old leads, past clients, open-house contacts, and referral opportunitie
 ## What ships in v1
 
 - Public synthetic demo at `/demo`
+- Mortgage growth demo at `/demo/mortgage`
 - Access-code reviewer sandbox at `/reviewer-login`
+- Template-aware workspaces for real estate/local sales and mortgage growth
 - Supabase magic-link login
 - Client workspace dashboard
-- Lead list, lead detail, status review, and draft editing
+- Lead list, lead detail, pipeline queues, rescue queues, task view, partner view, rollup, status review, and draft editing
 - Admin-only organization creation
 - Admin-only CSV import via pasted CSV text
 - Private Vercel Blob archive for raw CRM imports when configured
@@ -66,6 +68,7 @@ supabase db push --dns-resolver https
 ## Manual smoke test
 
 - `/demo` loads publicly and shows synthetic 3,000-contact economics.
+- `/demo/mortgage` loads publicly and shows mortgage pipeline goals, 14/21-day rescue, and CEO rollup.
 - `/reviewer-login` opens the synthetic reviewer workspace with the configured access code.
 - `/login` sends a Supabase magic link.
 - Invited users can reach `/dashboard`.

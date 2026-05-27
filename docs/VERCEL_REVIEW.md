@@ -9,6 +9,8 @@ The current sprint focused on customer-useful platform improvements:
 - Raw CRM imports are archived privately for audit and reprocessing.
 - Import summaries show a clearer audit trail for operators.
 - Reviewer access uses a dedicated access-code login that opens a synthetic workspace without exposing QA secrets or requiring email handoff.
+- Pipeline templates let the same product present real-estate/local-sales or mortgage-growth language, metrics, queues, and import fields without forking the app.
+- The mortgage template adds application conversion, 14/21-day rescue, assistant tasks, referral partners, and a CEO/broker rollup.
 - The app is instrumented for performance, traffic, and workflow tracing.
 - AI draft refinement is implemented behind a feature flag and ready for AI Gateway once team billing verification is complete.
 
@@ -63,5 +65,6 @@ Production is not promoted until local and preview QA pass.
 ## Current URLs
 
 - Production demo: https://lead-recovery-os.vercel.app/demo
+- Mortgage demo: https://lead-recovery-os.vercel.app/demo/mortgage
 - Production app: https://lead-recovery-os.vercel.app
 - GitHub repo: https://github.com/WarforgeTech/lead-recovery-os

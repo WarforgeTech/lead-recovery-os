@@ -2,9 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import { refineDraftWithAi, updateOpportunity } from "@/app/actions";
 import { Badge, Card, Shell } from "@/components/ui";
 import { createClient } from "@/lib/supabase-server";
-import { getActiveOrganizationId, requireUser } from "@/lib/data";
-import { segmentLabels, statusLabels } from "@/lib/types";
+import { getActiveOrganizationId, getMemberships, requireUser } from "@/lib/data";
+import { statusLabels, type LeadSegment } from "@/lib/types";
 import { aiDraftsEnabled } from "@/lib/ai-drafts";
+import { getPipelineTemplate } from "@/lib/pipeline-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   await requireUser();
   const organizationId = await getActiveOrganizationId();
   if (!organizationId) redirect("/no-workspace");
+  const memberships = await getMemberships();
+  const organization = memberships[0]?.organization as { pipeline_template?: string } | undefined;
+  const template = getPipelineTemplate(organization?.pipeline_template);
   const { id } = await params;
   const supabase = await createClient();
   const { data: opportunity, error } = await supabase
@@ -35,9 +39,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
         <Card>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="blue">{segmentLabels[opportunity.segment]}</Badge>
+            <Badge tone="blue">{template.segmentLabels[opportunity.segment as LeadSegment] ?? opportunity.segment}</Badge>
             <Badge>{statusLabels[opportunity.status]}</Badge>
             <Badge>Score {opportunity.priority_score}</Badge>
+            {metadataText(opportunity.pipeline_metadata, "stage_label") ? <Badge>{metadataText(opportunity.pipeline_metadata, "stage_label")}</Badge> : null}
           </div>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             {[
@@ -49,6 +54,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               ["Last contact", opportunity.contact?.last_contact_at],
               ["Consent", opportunity.contact?.consent],
               ["Owner", opportunity.contact?.owner_name],
+              ["Pipeline stage", metadataText(opportunity.pipeline_metadata, "stage_label")],
+              ["Next step", metadataText(opportunity.pipeline_metadata, "next_step")],
+              ["Why now", metadataText(opportunity.pipeline_metadata, "why_now")],
+              ["Rescue bucket", metadataText(opportunity.pipeline_metadata, "rescue_bucket")],
             ].map(([label, value]) => (
               <div key={label}>
                 <div className="text-sm text-zinc-500">{label}</div>
@@ -122,4 +131,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       </div>
     </Shell>
   );
+}
+
+function metadataText(metadata: unknown, key: string) {
+  if (!metadata || typeof metadata !== "object") return "";
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
 }

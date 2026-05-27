@@ -83,6 +83,16 @@ async function publicDemoCheck(activeBrowser) {
   await screenshot(page, "02-login.png");
   await writeStep("Login page", "pass", "Verified magic-link login page loads publicly.");
 
+  await page.goto(`${appUrl}/demo/mortgage`, { waitUntil: "networkidle" });
+  const mortgageDemoText = await page.locator("body").innerText();
+  expectIncludes(mortgageDemoText, "Pipeline Recovery OS configured for mortgage growth", "mortgage demo headline");
+  expectIncludes(mortgageDemoText, "2 applications/day", "mortgage applications target");
+  expectIncludes(mortgageDemoText, "14/21-day rescue", "mortgage rescue copy");
+  expectIncludes(mortgageDemoText, "CEO / broker rollup", "mortgage CEO rollup");
+  expectIncludes(mortgageDemoText, "Synthetic demo data", "mortgage synthetic disclaimer");
+  await screenshot(page, "03-mortgage-demo.png");
+  await writeStep("Mortgage demo", "pass", "Verified mortgage public demo, application target, rescue framing, rollup, and synthetic disclaimer.");
+
   await context.close();
 }
 
@@ -103,9 +113,36 @@ async function reviewerLoginCheck(activeBrowser) {
   await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 30000 });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Vercel Reviewer Demo Team", "reviewer workspace dashboard");
-  expectIncludes(text, "Imported contacts", "reviewer workspace stats");
-  await screenshot(page, "03-reviewer-login.png");
-  await writeStep("Reviewer login", "pass", "Access-code reviewer login reached the synthetic reviewer workspace.");
+  expectIncludes(text, "Monthly volume goal", "mortgage reviewer dashboard");
+  expectIncludes(text, "Application conversion", "mortgage segment labels");
+  await screenshot(page, "04-reviewer-login.png");
+
+  await page.goto(`${appUrl}/pipeline`, { waitUntil: "networkidle" });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "Application Conversion Queue", "application conversion queue");
+  expectIncludes(text, "Talked, no application", "talked no application metric");
+
+  await page.goto(`${appUrl}/rescue`, { waitUntil: "networkidle" });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "14/21-day rescue", "rescue page title");
+  expectIncludes(text, "22+ days", "rescue bucket");
+
+  await page.goto(`${appUrl}/tasks`, { waitUntil: "networkidle" });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "Assistant task view", "assistant task page");
+  expectIncludes(text, "Missing docs", "missing docs task metric");
+
+  await page.goto(`${appUrl}/partners`, { waitUntil: "networkidle" });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "Referral partner queue", "partner queue page");
+  expectIncludes(text, "No referral-compensation language", "partner compliance copy");
+
+  await page.goto(`${appUrl}/rollup`, { waitUntil: "networkidle" });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "CEO / broker rollup", "rollup page");
+  expectIncludes(text, "Before application / first step", "rollup leakage metric");
+
+  await writeStep("Reviewer login", "pass", "Access-code reviewer login reached the mortgage workspace and verified pipeline, rescue, tasks, partners, and rollup.");
 
   await context.close();
 }
@@ -115,7 +152,7 @@ async function adminJourney(activeBrowser) {
   const page = await context.newPage();
   await page.goto(await loginUrl(adminEmail, "/admin"), { waitUntil: "networkidle" });
   await page.waitForURL(/\/admin(?:$|\?)/, { timeout: 30000 });
-  await screenshot(page, "04-admin-home.png");
+  await screenshot(page, "05-admin-home.png");
   await writeStep("Admin login", "pass", `Admin magic link reached ${page.url()}.`);
 
   const orgName = `QA Pipeline Team ${runId}`;
@@ -130,7 +167,7 @@ async function adminJourney(activeBrowser) {
   const orgText = await page.locator("body").innerText();
   expectIncludes(orgText, orgName, "created organization page");
   expectIncludes(orgText, created.clientEmail, "invited client member");
-  await screenshot(page, "05-organization-created.png");
+  await screenshot(page, "06-organization-created.png");
   await writeStep("Create organization", "pass", `Created ${orgName} with id ${created.organizationId}.`);
 
   await page.goto(`${appUrl}/admin/imports/new?organization_id=${created.organizationId}`, { waitUntil: "networkidle" });
@@ -144,7 +181,7 @@ async function adminJourney(activeBrowser) {
   expectIncludes(importText, "Import audit trail", "import audit trail");
   expectIncludes(importText, "Raw import archived privately", "private import archive copy");
   expectIncludesLoose(importText, "Archive path", "archive path label");
-  await screenshot(page, "06-import-summary.png");
+  await screenshot(page, "07-import-summary.png");
   await writeStep("Import contacts", "pass", `Processed sample CRM CSV with import id ${created.importId}.`);
 
   await context.close();
@@ -158,14 +195,14 @@ async function clientJourney(activeBrowser) {
   let text = await page.locator("body").innerText();
   expectIncludes(text, "QA Pipeline Team", "client dashboard organization");
   expectIncludes(text, "Imported contacts", "dashboard stats");
-  await screenshot(page, "07-client-dashboard.png");
+  await screenshot(page, "08-client-dashboard.png");
   await writeStep("Client login", "pass", "Invited client reached their workspace dashboard by magic link.");
 
   await page.getByRole("link", { name: "Leads" }).click();
   await page.waitForURL(/\/leads(?:$|\?)/, { timeout: 30000 });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Maria Gutierrez", "lead list imported contact");
-  await screenshot(page, "08-leads-list.png");
+  await screenshot(page, "09-leads-list.png");
   await writeStep("Lead list", "pass", "Client sees imported contacts in the lead table.");
 
   await page.getByRole("link", { name: "Maria Gutierrez" }).first().click();
@@ -181,7 +218,7 @@ async function clientJourney(activeBrowser) {
   expectIncludes(text, "Approved", "approved status after save");
   const savedDraft = await page.getByLabel("Draft").inputValue();
   expectIncludes(savedDraft, "QA approved follow-up", "edited draft persisted on page");
-  await screenshot(page, "09-approved-lead-detail.png");
+  await screenshot(page, "10-approved-lead-detail.png");
   await writeStep("Approve draft", "pass", "Client edited the draft, approved it, reloaded, and saw the saved state.");
 
   await page.goto(`${appUrl}/exports`, { waitUntil: "networkidle" });
@@ -195,7 +232,7 @@ async function clientJourney(activeBrowser) {
   const csv = await fs.readFile(csvPath, "utf8");
   expectIncludes(csv, "Maria Gutierrez", "approved CSV lead");
   expectIncludes(csv, "QA approved follow-up", "approved CSV edited message");
-  await screenshot(page, "10-exports.png");
+  await screenshot(page, "11-exports.png");
   await writeStep("Export queue", "pass", "Approved queue downloaded and contained the edited approved message.");
 
   await context.close();

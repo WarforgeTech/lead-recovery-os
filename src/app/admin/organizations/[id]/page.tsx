@@ -2,6 +2,7 @@ import Link from "next/link";
 import { addOrganizationMember } from "@/app/actions";
 import { Badge, Card, PrimaryLink, Shell, Stat } from "@/components/ui";
 import { getOrganizationSummary, requireAdmin } from "@/lib/data";
+import { getPipelineTemplate } from "@/lib/pipeline-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
   await requireAdmin();
   const { id } = await params;
   const summary = await getOrganizationSummary(id);
+  const template = getPipelineTemplate(summary.organization.pipeline_template);
   const ready = summary.opportunities.filter((item) => item.status === "ready_to_contact").length;
   const approved = summary.opportunities.filter((item) => item.status === "approved").length;
   const held = summary.contacts.filter((item) => item.consent !== "ok").length;
@@ -27,6 +29,18 @@ export default async function OrganizationPage({ params }: { params: Promise<{ i
         <Stat label="Approved" value={String(approved)} />
         <Stat label="Held for review" value={String(held)} />
       </div>
+      <Card className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">Pipeline template</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              This workspace is configured as <span className="font-medium text-zinc-900">{template.name}</span>. Labels,
+              dashboard metrics, queues, and import rules adapt from this template.
+            </p>
+          </div>
+          <Badge tone={template.id === "mortgage_growth" ? "blue" : "neutral"}>{template.id}</Badge>
+        </div>
+      </Card>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="text-xl font-semibold tracking-tight">Members</h2>

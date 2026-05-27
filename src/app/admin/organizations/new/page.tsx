@@ -20,6 +20,13 @@ export default async function NewOrganizationPage() {
               <option value="local_sales_team">Local sales team</option>
             </select>
           </label>
+          <label className="block">
+            <span className="text-sm font-medium text-zinc-700">Pipeline template</span>
+            <select name="pipeline_template" className="mt-2 h-11 w-full rounded-md border border-zinc-300 px-3">
+              <option value="real_estate_default">Real estate / local sales</option>
+              <option value="mortgage_growth">Mortgage growth</option>
+            </select>
+          </label>
           <button className="h-11 rounded-md bg-zinc-950 px-4 text-sm font-medium text-white hover:bg-zinc-800">
             Create workspace
           </button>

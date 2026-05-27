@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Badge, Card, Shell } from "@/components/ui";
-import { getActiveOrganizationId, getClientOpportunities, requireUser } from "@/lib/data";
-import { segmentLabels, statusLabels } from "@/lib/types";
+import { getActiveWorkspaceView } from "@/lib/workspace-view";
+import { statusLabels, type LeadSegment } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -11,11 +10,8 @@ export default async function LeadsPage({
 }: {
   searchParams: Promise<{ segment?: string }>;
 }) {
-  await requireUser();
-  const organizationId = await getActiveOrganizationId();
-  if (!organizationId) redirect("/no-workspace");
   const params = await searchParams;
-  const opportunities = await getClientOpportunities(organizationId);
+  const { opportunities, template } = await getActiveWorkspaceView();
   const filtered = params.segment ? opportunities.filter((item) => item.segment === params.segment) : opportunities;
 
   return (
@@ -23,7 +19,7 @@ export default async function LeadsPage({
       <Card>
         <div className="mb-5 flex flex-wrap gap-2">
           <Link href="/leads" className="rounded-md border border-zinc-300 px-3 py-2 text-sm">All</Link>
-          {Object.entries(segmentLabels).map(([key, label]) => (
+          {Object.entries(template.segmentLabels).map(([key, label]) => (
             <Link key={key} href={`/leads?segment=${key}`} className="rounded-md border border-zinc-300 px-3 py-2 text-sm">
               {label}
             </Link>
@@ -49,7 +45,7 @@ export default async function LeadsPage({
                     </Link>
                     <div className="text-zinc-500">{item.contact?.source ?? "Imported contact"}</div>
                   </td>
-                  <td>{segmentLabels[item.segment]}</td>
+                  <td>{template.segmentLabels[item.segment as LeadSegment] ?? item.segment}</td>
                   <td><Badge>{statusLabels[item.status]}</Badge></td>
                   <td>{item.priority_score}</td>
                   <td className="max-w-sm text-zinc-600">{item.recommended_action}</td>

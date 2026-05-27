@@ -11,18 +11,20 @@ npm run qa:human
 The harness acts like a real user:
 
 1. Opens the public demo and verifies the pitch math.
-2. Opens the login page.
-3. Generates and clicks a Supabase magic link for the admin user.
-4. Creates a QA client organization through the admin UI.
-5. Imports a sample CRM CSV through the admin UI.
-6. Generates and clicks a Supabase magic link for the invited client.
-7. Checks the client dashboard.
-8. Opens the leads list and a lead detail page.
-9. Edits and approves a human-reviewed follow-up draft.
-10. Exports the approved queue to CSV.
-11. Verifies saved rows directly in Supabase.
-12. Cleans up the QA organization unless `QA_KEEP_DATA=1`.
-13. Writes a Markdown report and screenshots under `qa/reports/`.
+2. Opens the mortgage public demo and verifies application, rescue, and rollup framing.
+3. Opens the login page.
+4. Uses reviewer access-code login to verify the mortgage dashboard, pipeline, rescue, tasks, partners, and rollup.
+5. Generates and clicks a Supabase magic link for the admin user.
+6. Creates a QA client organization through the admin UI.
+7. Imports a sample CRM CSV through the admin UI.
+8. Generates and clicks a Supabase magic link for the invited client.
+9. Checks the client dashboard.
+10. Opens the leads list and a lead detail page.
+11. Edits and approves a human-reviewed follow-up draft.
+12. Exports the approved queue to CSV.
+13. Verifies saved rows directly in Supabase.
+14. Cleans up the QA organization unless `QA_KEEP_DATA=1`.
+15. Writes a Markdown report and screenshots under `qa/reports/`.
 
 ## Required Env
 
@@ -55,7 +57,9 @@ APP_URL=http://localhost:3000 npm run qa:human
 ## Pass Criteria
 
 - Public demo loads with the 3,000-contact story, 1,410 stale leads, 318 opportunities, and pilot economics.
-- Reviewer access-code login reaches the synthetic `Vercel Reviewer Demo Team` workspace when configured.
+- Mortgage demo loads with 2 applications/day, 14/21-day rescue, CEO rollup, and synthetic-only disclaimer.
+- Reviewer access-code login reaches the synthetic `Vercel Reviewer Demo Team` mortgage workspace when configured.
+- Reviewer mortgage workspace exposes application conversion, rescue, assistant task, referral partner, and rollup views.
 - Admin magic-link login reaches `/admin`.
 - Organization creation persists and opens the organization page.
 - Import summary shows `4` total rows and `4` processed rows.
