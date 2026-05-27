@@ -8,6 +8,7 @@ The current sprint focused on customer-useful platform improvements:
 
 - Raw CRM imports are archived privately for audit and reprocessing.
 - Import summaries show a clearer audit trail for operators.
+- Reviewer access uses a dedicated access-code login that opens a synthetic workspace without exposing QA secrets or requiring email handoff.
 - The app is instrumented for performance, traffic, and workflow tracing.
 - AI draft refinement is implemented behind a feature flag and ready for AI Gateway once team billing verification is complete.
 
@@ -32,6 +33,7 @@ The current sprint focused on customer-useful platform improvements:
 - Supabase RLS remains the tenant isolation boundary.
 - No outbound SMS/email is sent by the product.
 - The public demo uses synthetic data only.
+- Reviewer access uses `vercel-reviewer@pipeline-recovery.test` and synthetic contact records only.
 - Vercel traces intentionally avoid names, emails, phone numbers, note bodies, and draft text.
 - Raw imports are archived privately; archive URLs are operator-only and not exposed to clients.
 

@@ -35,12 +35,14 @@ SUPABASE_SERVICE_ROLE_KEY=...
 QA_ADMIN_EMAIL=mark@warforge.tech
 QA_LOGIN_SECRET=
 VERCEL_AUTOMATION_BYPASS_SECRET=
+REVIEWER_ACCESS_CODE=
 BLOB_READ_WRITE_TOKEN=
 ENABLE_AI_DRAFT_REFINEMENT=0
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is not required by the QA script. `QA_LOGIN_SECRET` is used by the protected `/auth/qa-login` route so browser QA can create real Supabase sessions without manual email.
 `VERCEL_AUTOMATION_BYPASS_SECRET` is optional locally and required when QA targets a protected Vercel Preview deployment.
+`REVIEWER_ACCESS_CODE` enables the reviewer-login check against `/reviewer-login`.
 
 ## Useful Flags
 
@@ -53,6 +55,7 @@ APP_URL=http://localhost:3000 npm run qa:human
 ## Pass Criteria
 
 - Public demo loads with the 3,000-contact story, 1,410 stale leads, 318 opportunities, and pilot economics.
+- Reviewer access-code login reaches the synthetic `Vercel Reviewer Demo Team` workspace when configured.
 - Admin magic-link login reaches `/admin`.
 - Organization creation persists and opens the organization page.
 - Import summary shows `4` total rows and `4` processed rows.

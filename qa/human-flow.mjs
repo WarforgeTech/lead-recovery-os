@@ -13,6 +13,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminEmail = process.env.QA_ADMIN_EMAIL || "mark@warforge.tech";
 const qaLoginSecret = process.env.QA_LOGIN_SECRET;
 const vercelProtectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS;
+const reviewerAccessCode = process.env.REVIEWER_ACCESS_CODE;
 const keepData = process.env.QA_KEEP_DATA === "1";
 const headless = process.env.HEADLESS !== "0";
 const runId = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
@@ -35,6 +36,7 @@ let browser;
 try {
   browser = await chromium.launch({ headless });
   await publicDemoCheck(browser);
+  await reviewerLoginCheck(browser);
   await adminJourney(browser);
   await clientJourney(browser);
   await verifyPersistence();
@@ -84,12 +86,36 @@ async function publicDemoCheck(activeBrowser) {
   await context.close();
 }
 
+async function reviewerLoginCheck(activeBrowser) {
+  if (!reviewerAccessCode) {
+    await writeStep("Reviewer login", "pass", "Skipped because REVIEWER_ACCESS_CODE is not configured.");
+    return;
+  }
+
+  const context = await activeBrowser.newContext(contextOptions({ viewport: { width: 1440, height: 1000 } }));
+  const page = await context.newPage();
+
+  await page.goto(`${appUrl}/reviewer-login`, { waitUntil: "networkidle" });
+  let text = await page.locator("body").innerText();
+  expectIncludes(text, "Reviewer access", "reviewer login page");
+  await page.getByLabel("Access code").fill(reviewerAccessCode);
+  await page.getByRole("button", { name: "Open reviewer workspace" }).click();
+  await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 30000 });
+  text = await page.locator("body").innerText();
+  expectIncludes(text, "Vercel Reviewer Demo Team", "reviewer workspace dashboard");
+  expectIncludes(text, "Imported contacts", "reviewer workspace stats");
+  await screenshot(page, "03-reviewer-login.png");
+  await writeStep("Reviewer login", "pass", "Access-code reviewer login reached the synthetic reviewer workspace.");
+
+  await context.close();
+}
+
 async function adminJourney(activeBrowser) {
   const context = await activeBrowser.newContext(contextOptions({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true }));
   const page = await context.newPage();
   await page.goto(await loginUrl(adminEmail, "/admin"), { waitUntil: "networkidle" });
   await page.waitForURL(/\/admin(?:$|\?)/, { timeout: 30000 });
-  await screenshot(page, "03-admin-home.png");
+  await screenshot(page, "04-admin-home.png");
   await writeStep("Admin login", "pass", `Admin magic link reached ${page.url()}.`);
 
   const orgName = `QA Pipeline Team ${runId}`;
@@ -104,7 +130,7 @@ async function adminJourney(activeBrowser) {
   const orgText = await page.locator("body").innerText();
   expectIncludes(orgText, orgName, "created organization page");
   expectIncludes(orgText, created.clientEmail, "invited client member");
-  await screenshot(page, "04-organization-created.png");
+  await screenshot(page, "05-organization-created.png");
   await writeStep("Create organization", "pass", `Created ${orgName} with id ${created.organizationId}.`);
 
   await page.goto(`${appUrl}/admin/imports/new?organization_id=${created.organizationId}`, { waitUntil: "networkidle" });
@@ -118,7 +144,7 @@ async function adminJourney(activeBrowser) {
   expectIncludes(importText, "Import audit trail", "import audit trail");
   expectIncludes(importText, "Raw import archived privately", "private import archive copy");
   expectIncludesLoose(importText, "Archive path", "archive path label");
-  await screenshot(page, "05-import-summary.png");
+  await screenshot(page, "06-import-summary.png");
   await writeStep("Import contacts", "pass", `Processed sample CRM CSV with import id ${created.importId}.`);
 
   await context.close();
@@ -132,14 +158,14 @@ async function clientJourney(activeBrowser) {
   let text = await page.locator("body").innerText();
   expectIncludes(text, "QA Pipeline Team", "client dashboard organization");
   expectIncludes(text, "Imported contacts", "dashboard stats");
-  await screenshot(page, "06-client-dashboard.png");
+  await screenshot(page, "07-client-dashboard.png");
   await writeStep("Client login", "pass", "Invited client reached their workspace dashboard by magic link.");
 
   await page.getByRole("link", { name: "Leads" }).click();
   await page.waitForURL(/\/leads(?:$|\?)/, { timeout: 30000 });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Maria Gutierrez", "lead list imported contact");
-  await screenshot(page, "07-leads-list.png");
+  await screenshot(page, "08-leads-list.png");
   await writeStep("Lead list", "pass", "Client sees imported contacts in the lead table.");
 
   await page.getByRole("link", { name: "Maria Gutierrez" }).first().click();
@@ -155,7 +181,7 @@ async function clientJourney(activeBrowser) {
   expectIncludes(text, "Approved", "approved status after save");
   const savedDraft = await page.getByLabel("Draft").inputValue();
   expectIncludes(savedDraft, "QA approved follow-up", "edited draft persisted on page");
-  await screenshot(page, "08-approved-lead-detail.png");
+  await screenshot(page, "09-approved-lead-detail.png");
   await writeStep("Approve draft", "pass", "Client edited the draft, approved it, reloaded, and saw the saved state.");
 
   await page.goto(`${appUrl}/exports`, { waitUntil: "networkidle" });
@@ -169,7 +195,7 @@ async function clientJourney(activeBrowser) {
   const csv = await fs.readFile(csvPath, "utf8");
   expectIncludes(csv, "Maria Gutierrez", "approved CSV lead");
   expectIncludes(csv, "QA approved follow-up", "approved CSV edited message");
-  await screenshot(page, "09-exports.png");
+  await screenshot(page, "10-exports.png");
   await writeStep("Export queue", "pass", "Approved queue downloaded and contained the edited approved message.");
 
   await context.close();
