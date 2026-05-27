@@ -12,8 +12,10 @@ It finds old leads, past clients, open-house contacts, and referral opportunitie
 - Lead list, lead detail, status review, and draft editing
 - Admin-only organization creation
 - Admin-only CSV import via pasted CSV text
+- Private Vercel Blob archive for raw CRM imports when configured
 - Deterministic normalization, dedupe, segmentation, scoring, and draft generation
 - Approved queue CSV export
+- Vercel Analytics, Speed Insights, and OpenTelemetry instrumentation
 - Supabase Postgres RLS for tenant-scoped client data
 
 ## What v1 does not do
@@ -42,6 +44,10 @@ SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ADMIN_EMAILS=mark@warforge.tech
+QA_LOGIN_SECRET=
+BLOB_READ_WRITE_TOKEN=
+AI_GATEWAY_API_KEY=
+ENABLE_AI_DRAFT_REFINEMENT=0
 ```
 
 ## Supabase
@@ -63,6 +69,7 @@ supabase db push --dns-resolver https
 - Users without a membership land on `/no-workspace`.
 - Admin can create an organization.
 - Admin can process a CSV import.
+- Import summary shows private archive/audit metadata.
 - Leads render in `/leads`.
 - A lead detail draft can be edited and approved.
 - `/exports` downloads approved records as CSV.

@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import { updateOpportunity } from "@/app/actions";
+import { refineDraftWithAi, updateOpportunity } from "@/app/actions";
 import { Badge, Card, Shell } from "@/components/ui";
 import { createClient } from "@/lib/supabase-server";
 import { getActiveOrganizationId, requireUser } from "@/lib/data";
 import { segmentLabels, statusLabels } from "@/lib/types";
+import { aiDraftsEnabled } from "@/lib/ai-drafts";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     .eq("opportunity_id", opportunity.id)
     .maybeSingle();
   if (draftError) throw draftError;
+  const aiEnabled = aiDraftsEnabled();
 
   return (
     <Shell title={opportunity.contact?.name ?? "Lead detail"}>
@@ -61,7 +63,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </Card>
 
         <Card>
-          <h2 className="text-xl font-semibold tracking-tight">Human-approved follow-up</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-tight">Human-approved follow-up</h2>
+            <div className="flex flex-wrap gap-2">
+              {draft?.model_used ? <Badge tone="blue">{draft.model_used.replace("anthropic/", "")}</Badge> : null}
+              {draft?.generated_at ? <Badge>AI refined</Badge> : null}
+            </div>
+          </div>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
             This system drafts copy. It does not send messages. The client edits and approves before exporting.
           </p>
@@ -91,10 +99,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
-            <button className="h-11 w-full rounded-md bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800">
-              Save review state
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {aiEnabled ? (
+                <button
+                  formAction={refineDraftWithAi}
+                  className="h-11 rounded-md border border-zinc-300 bg-white text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+                >
+                  Refine draft
+                </button>
+              ) : null}
+              <button className="h-11 rounded-md bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800">
+                Save review state
+              </button>
+            </div>
           </form>
+          {!aiEnabled ? (
+            <p className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-500">
+              AI Gateway refinement is code-ready and hidden until an AI Gateway key is configured.
+            </p>
+          ) : null}
         </Card>
       </div>
     </Shell>

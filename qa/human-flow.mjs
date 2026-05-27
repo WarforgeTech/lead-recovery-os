@@ -12,6 +12,7 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminEmail = process.env.QA_ADMIN_EMAIL || "mark@warforge.tech";
 const qaLoginSecret = process.env.QA_LOGIN_SECRET;
+const vercelProtectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS;
 const keepData = process.env.QA_KEEP_DATA === "1";
 const headless = process.env.HEADLESS !== "0";
 const runId = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
@@ -58,7 +59,7 @@ try {
 }
 
 async function publicDemoCheck(activeBrowser) {
-  const context = await activeBrowser.newContext({ viewport: { width: 1440, height: 1000 } });
+  const context = await activeBrowser.newContext(contextOptions({ viewport: { width: 1440, height: 1000 } }));
   const page = await context.newPage();
 
   await page.goto(`${appUrl}/demo`, { waitUntil: "networkidle" });
@@ -84,7 +85,7 @@ async function publicDemoCheck(activeBrowser) {
 }
 
 async function adminJourney(activeBrowser) {
-  const context = await activeBrowser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+  const context = await activeBrowser.newContext(contextOptions({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true }));
   const page = await context.newPage();
   await page.goto(await loginUrl(adminEmail, "/admin"), { waitUntil: "networkidle" });
   await page.waitForURL(/\/admin(?:$|\?)/, { timeout: 30000 });
@@ -114,6 +115,9 @@ async function adminJourney(activeBrowser) {
   expectIncludes(importText, "Total rows", "import summary");
   expectIncludes(importText, "4", "four imported rows");
   expectIncludes(importText, "Processed contacts", "processed contacts stat");
+  expectIncludes(importText, "Import audit trail", "import audit trail");
+  expectIncludes(importText, "Raw import archived privately", "private import archive copy");
+  expectIncludesLoose(importText, "Archive path", "archive path label");
   await screenshot(page, "05-import-summary.png");
   await writeStep("Import contacts", "pass", `Processed sample CRM CSV with import id ${created.importId}.`);
 
@@ -121,7 +125,7 @@ async function adminJourney(activeBrowser) {
 }
 
 async function clientJourney(activeBrowser) {
-  const context = await activeBrowser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
+  const context = await activeBrowser.newContext(contextOptions({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true }));
   const page = await context.newPage();
   await page.goto(await loginUrl(created.clientEmail, "/dashboard"), { waitUntil: "networkidle" });
   await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 30000 });
@@ -174,7 +178,7 @@ async function clientJourney(activeBrowser) {
 async function verifyPersistence() {
   const [orgResult, importResult, contactsResult, opportunitiesResult, draftsResult] = await Promise.all([
     supabase.from("organizations").select("id, name").eq("id", created.organizationId).single(),
-    supabase.from("imports").select("id, total_rows, processed_rows").eq("id", created.importId).single(),
+    supabase.from("imports").select("id, total_rows, processed_rows, raw_storage_provider, raw_file_path").eq("id", created.importId).single(),
     supabase.from("contacts").select("id, name").eq("organization_id", created.organizationId),
     supabase.from("lead_opportunities").select("id, status").eq("organization_id", created.organizationId),
     supabase.from("message_drafts").select("id, approval_status, edited_text").eq("organization_id", created.organizationId),
@@ -187,6 +191,9 @@ async function verifyPersistence() {
   if (importResult.data.total_rows !== 4 || importResult.data.processed_rows !== 4) {
     throw new Error(`Import row counts were wrong: ${JSON.stringify(importResult.data)}`);
   }
+  if (!importResult.data.raw_file_path || !["vercel_blob", "supabase"].includes(importResult.data.raw_storage_provider)) {
+    throw new Error(`Import archive metadata was missing or invalid: ${JSON.stringify(importResult.data)}`);
+  }
   if ((contactsResult.data || []).length !== 4) {
     throw new Error(`Expected 4 contacts, found ${(contactsResult.data || []).length}`);
   }
@@ -197,7 +204,7 @@ async function verifyPersistence() {
   await writeStep(
     "Database persistence",
     "pass",
-    `Verified org, import, 4 contacts, ${(opportunitiesResult.data || []).length} opportunities, and approved draft in Supabase.`,
+    `Verified org, archived import, 4 contacts, ${(opportunitiesResult.data || []).length} opportunities, and approved draft in Supabase.`,
   );
 }
 
@@ -291,6 +298,23 @@ function expectIncludes(text, needle, label) {
   if (!text.includes(needle)) {
     throw new Error(`Expected ${label} to include "${needle}".`);
   }
+}
+
+function expectIncludesLoose(text, needle, label) {
+  if (!text.toLowerCase().includes(needle.toLowerCase())) {
+    throw new Error(`Expected ${label} to include "${needle}".`);
+  }
+}
+
+function contextOptions(options) {
+  if (!vercelProtectionBypass) return options;
+  return {
+    ...options,
+    extraHTTPHeaders: {
+      ...(options.extraHTTPHeaders ?? {}),
+      "x-vercel-protection-bypass": vercelProtectionBypass,
+    },
+  };
 }
 
 function cleanUrl(value) {

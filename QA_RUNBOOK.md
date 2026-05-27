@@ -34,9 +34,13 @@ NEXT_PUBLIC_SUPABASE_URL=https://...
 SUPABASE_SERVICE_ROLE_KEY=...
 QA_ADMIN_EMAIL=mark@warforge.tech
 QA_LOGIN_SECRET=
+VERCEL_AUTOMATION_BYPASS_SECRET=
+BLOB_READ_WRITE_TOKEN=
+ENABLE_AI_DRAFT_REFINEMENT=0
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is not required by the QA script. `QA_LOGIN_SECRET` is used by the protected `/auth/qa-login` route so browser QA can create real Supabase sessions without manual email.
+`VERCEL_AUTOMATION_BYPASS_SECRET` is optional locally and required when QA targets a protected Vercel Preview deployment.
 
 ## Useful Flags
 
@@ -52,6 +56,7 @@ APP_URL=http://localhost:3000 npm run qa:human
 - Admin magic-link login reaches `/admin`.
 - Organization creation persists and opens the organization page.
 - Import summary shows `4` total rows and `4` processed rows.
+- Import summary shows private archive/audit metadata.
 - Client magic-link login reaches `/dashboard`.
 - Client sees the imported workspace and leads.
 - Lead detail saves an approved draft.

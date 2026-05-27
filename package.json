@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev",
@@ -13,8 +13,15 @@
     "qa:human": "node qa/human-flow.mjs"
   },
   "dependencies": {
+    "@ai-sdk/gateway": "^3.0.120",
+    "@opentelemetry/api": "^1.9.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.4.0",
+    "@vercel/otel": "^2.1.2",
+    "@vercel/speed-insights": "^2.0.0",
+    "ai": "^6.0.191",
     "next": "16.2.6",
     "papaparse": "^5.5.3",
     "react": "19.2.4",

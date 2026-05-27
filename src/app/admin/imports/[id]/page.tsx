@@ -46,7 +46,49 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
             remains outside the product until a client explicitly approves a production integration.
           </p>
         </div>
+        <div className="mt-5 rounded-md border border-zinc-200 bg-white p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium text-zinc-700">Import audit trail</div>
+              <p className="mt-2 text-sm leading-6 text-zinc-600">
+                Raw import archived privately for audit/reprocessing. This archive is operator-only and is not exposed to clients.
+              </p>
+            </div>
+            <Badge tone={importRow.raw_storage_provider === "vercel_blob" ? "blue" : "neutral"}>
+              {providerLabel(importRow.raw_storage_provider)}
+            </Badge>
+          </div>
+          <div className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+            <AuditField label="Archived at" value={formatDate(importRow.archived_at)} />
+            <AuditField label="Archive path" value={importRow.raw_file_path || "Not archived"} />
+            <AuditField label="Archive URL status" value={importRow.raw_file_url ? "Private Blob URL recorded" : "No public URL"} />
+            <AuditField label="Source filename" value={importRow.source_filename || "Not provided"} />
+          </div>
+        </div>
       </Card>
     </Shell>
   );
+}
+
+function AuditField({ label, value }: Readonly<{ label: string; value: string }>) {
+  return (
+    <div className="rounded-md border border-zinc-100 bg-zinc-50 p-3">
+      <div className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">{label}</div>
+      <div className="mt-1 break-all text-zinc-800">{value}</div>
+    </div>
+  );
+}
+
+function providerLabel(provider: string | null) {
+  if (provider === "vercel_blob") return "Vercel Blob";
+  if (provider === "supabase") return "Supabase Storage";
+  return "Archive unavailable";
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Not archived";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

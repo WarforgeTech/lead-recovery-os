@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase-server";
+import { traceAsync } from "@/lib/tracing";
 
 export async function GET(request: NextRequest) {
   const secret = process.env.QA_LOGIN_SECRET;
@@ -30,25 +31,27 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  const admin = createAdminClient();
-  const { data, error: linkError } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
+  return traceAsync("qa.login", { has_email: Boolean(email), next_path: next }, async () => {
+    const admin = createAdminClient();
+    const { data, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    });
+
+    if (linkError || !data.properties?.email_otp) {
+      return NextResponse.json({ error: "Could not create QA session" }, { status: 500 });
+    }
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: data.properties.email_otp,
+      type: "email",
+    });
+
+    if (verifyError) {
+      return NextResponse.json({ error: "Could not verify QA session" }, { status: 500 });
+    }
+
+    return response;
   });
-
-  if (linkError || !data.properties?.email_otp) {
-    return NextResponse.json({ error: "Could not create QA session" }, { status: 500 });
-  }
-
-  const { error: verifyError } = await supabase.auth.verifyOtp({
-    email,
-    token: data.properties.email_otp,
-    type: "email",
-  });
-
-  if (verifyError) {
-    return NextResponse.json({ error: "Could not verify QA session" }, { status: 500 });
-  }
-
-  return response;
 }
