@@ -183,9 +183,9 @@ function mortgageStage(contact: ImportContact) {
     .join(" ")
     .toLowerCase();
 
+  if (/(doc|document|bank statement|signature|stips|condition|missing)/.test(haystack)) return "docs_missing";
   if (/(partner|referral partner|realtor|agent partner|attorney)/.test(haystack)) return "referral_partner";
   if (/(past client|closed client|closed loan|review|annual)/.test(haystack)) return "past_client";
-  if (/(doc|document|bank statement|signature|stips|condition|missing)/.test(haystack)) return "docs_missing";
   if (/(pre.?approved|preapproval)/.test(haystack)) return "pre_approved";
   if (/(pre.?qualified|prequal)/.test(haystack)) return "pre_qualified";
   if (/(credit|underwriting|review)/.test(haystack)) return "credit_doc_review";

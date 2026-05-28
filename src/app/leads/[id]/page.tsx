@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { refineDraftWithAi, updateOpportunity } from "@/app/actions";
+import { CopyDraftButton } from "@/components/copy-draft-button";
 import { Badge, Card, Shell } from "@/components/ui";
 import { createClient } from "@/lib/supabase-server";
 import { getActiveOrganizationId, getMemberships, requireUser } from "@/lib/data";
@@ -69,6 +70,22 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <div className="text-sm font-medium text-zinc-500">Conversation summary</div>
             <p className="mt-2 text-sm leading-6 text-zinc-700">{opportunity.contact?.normalized_summary}</p>
           </div>
+          {template.id === "mortgage_growth" ? (
+            <div className="mt-6 grid gap-3 rounded-md border border-zinc-200 p-4 text-sm leading-6 text-zinc-700 md:grid-cols-3">
+              <div>
+                <div className="font-medium text-zinc-950">1. Contact</div>
+                <p className="mt-1">Copy the reviewed draft into the normal email, SMS, phone, or LOS workflow.</p>
+              </div>
+              <div>
+                <div className="font-medium text-zinc-950">2. Update</div>
+                <p className="mt-1">Set the outcome to Contacted, Replied, Appointment set, Not now, or Do not contact.</p>
+              </div>
+              <div>
+                <div className="font-medium text-zinc-950">3. Recycle</div>
+                <p className="mt-1">No response stays out of today&apos;s queue and comes back through the follow-up cadence.</p>
+              </div>
+            </div>
+          ) : null}
         </Card>
 
         <Card>
@@ -109,6 +126,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               ))}
             </select>
             <div className="grid gap-3 sm:grid-cols-2">
+              <CopyDraftButton targetId="edited_text" />
               {aiEnabled ? (
                 <button
                   formAction={refineDraftWithAi}
@@ -117,7 +135,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   Refine draft
                 </button>
               ) : null}
-              <button className="h-11 rounded-md bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800">
+              <button className="h-11 rounded-md bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800 sm:col-span-2">
                 Save review state
               </button>
             </div>

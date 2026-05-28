@@ -13,6 +13,7 @@ export default function MortgageDemoPage() {
           </div>
           <div className="flex gap-3">
             <SecondaryLink href="/demo">General demo</SecondaryLink>
+            <SecondaryLink href="/reviewer-login">Open interactive sandbox</SecondaryLink>
             <PrimaryLink href="mailto:mark@warforge.tech?subject=Mortgage%20Pipeline%20Recovery%20pilot">
               Book a 15-minute workflow call
             </PrimaryLink>
@@ -36,6 +37,7 @@ export default function MortgageDemoPage() {
               <Badge tone="blue">2 applications/day target</Badge>
               <Badge>14/21-day rescue</Badge>
               <Badge>No outbound sending in v1</Badge>
+              <Badge tone="green">Interactive sandbox available</Badge>
             </div>
           </div>
           <Card>

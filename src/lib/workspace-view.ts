@@ -49,7 +49,8 @@ export function metadataNumber(item: WorkspaceOpportunity, key: string) {
 }
 
 export function activeQueueItems(opportunities: WorkspaceOpportunity[]) {
+  const activeStatuses = new Set(["new", "needs_review", "ready_to_contact", "approved", "replied"]);
   return opportunities
-    .filter((item) => !["do_not_contact", "closed_lost", "closed_won"].includes(item.status))
+    .filter((item) => activeStatuses.has(item.status))
     .sort((a, b) => b.priority_score - a.priority_score);
 }
