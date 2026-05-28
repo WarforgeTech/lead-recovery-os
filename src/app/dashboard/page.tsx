@@ -101,8 +101,8 @@ export default async function DashboardPage({
           <Card>
             <h2 className="text-xl font-semibold tracking-tight">How Adam and Janine use this</h2>
             <div className="mt-4 space-y-3 text-sm leading-6 text-zinc-700">
-              <p><strong className="text-zinc-950">Adam:</strong> works high-intent borrowers and anything marked Needs Adam.</p>
-              <p><strong className="text-zinc-950">Janine:</strong> clears application reminders, docs, no-response follow-ups, and escalates only the important ones.</p>
+              <p><strong className="text-zinc-950">Adam:</strong> works high-intent borrowers and anything Janine escalates to him.</p>
+              <p><strong className="text-zinc-950">Janine:</strong> clears application reminders, docs, no-reply follow-ups, and escalates only the important ones.</p>
               <p><strong className="text-zinc-950">End of day:</strong> paste a messy recap below instead of manually hunting through every contact.</p>
             </div>
           </Card>

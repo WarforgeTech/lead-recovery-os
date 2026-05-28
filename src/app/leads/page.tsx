@@ -3,6 +3,7 @@ import { Badge, Card, Shell } from "@/components/ui";
 import { getActiveWorkspaceView, metadataText } from "@/lib/workspace-view";
 import { stageLabel } from "@/lib/mortgage-workflow";
 import { statusLabels } from "@/lib/types";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export default async function LeadsPage({
                   <td>{stageLabel(metadataText(item, "pipeline_stage"))}</td>
                   <td><Badge>{statusLabels[item.status]}</Badge></td>
                   <td>{metadataText(item, "assigned_owner") || item.contact?.owner_name || "Unassigned"}</td>
-                  <td>{metadataText(item, "next_due_at") || item.next_follow_up_at || "Today"}</td>
+                  <td>{formatDate(metadataText(item, "next_due_at") || item.next_follow_up_at) || "Today"}</td>
                   <td className="max-w-sm text-zinc-600">{metadataText(item, "why_now") || item.recommended_action}</td>
                 </tr>
               ))}

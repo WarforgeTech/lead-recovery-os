@@ -1,4 +1,5 @@
 import type { OpportunityStatus } from "./types";
+import { formatDate } from "./format";
 
 export type WorkflowOutcome =
   | "mark_contacted"
@@ -29,7 +30,7 @@ export const workflowFilters: Array<{ id: WorkflowFilter; label: string }> = [
   { id: "docs", label: "Pre-approval / docs stuck" },
   { id: "dead", label: "Past declined / dead deal" },
   { id: "relationships", label: "Referral partner / past client" },
-  { id: "needs_adam", label: "Needs Adam" },
+  { id: "needs_adam", label: "Escalated to Adam" },
 ];
 
 export const mortgageStageLabels: Record<string, string> = {
@@ -85,7 +86,7 @@ export function cadenceLabel(metadata?: WorkflowMetadata | null) {
   const touchCount = Number(metadata?.touch_count ?? 0);
   const nextDue = String(metadata?.next_due_at ?? "");
   if (!touchCount) return "Touch 1";
-  if (nextDue) return `Touch ${Math.min(touchCount + 1, 4)} due ${nextDue}`;
+  if (nextDue) return `Touch ${Math.min(touchCount + 1, 4)} due ${formatDate(nextDue)}`;
   return String(metadata?.cadence_state ?? "No active cadence");
 }
 
@@ -127,7 +128,7 @@ export function applyWorkflowOutcome({
       status: exhausted ? "not_now" : "contacted",
       nextFollowUpAt: String(metadata.next_due_at),
       metadata,
-      eventLabel: outcome === "no_response" ? "No response" : "Marked contacted",
+      eventLabel: outcome === "no_response" ? "No reply; next follow-up scheduled" : "Outreach logged; next follow-up scheduled",
     };
   }
 
@@ -163,13 +164,13 @@ export function applyWorkflowOutcome({
     const days = snoozeDays && snoozeDays > 0 ? snoozeDays : 3;
     metadata.cadence_state = "snoozed";
     metadata.next_due_at = addDaysIso(days);
-    return { status: currentStatus, nextFollowUpAt: String(metadata.next_due_at), metadata, eventLabel: `Snoozed ${days} days` };
+    return { status: currentStatus, nextFollowUpAt: String(metadata.next_due_at), metadata, eventLabel: `Follow-up moved ${days} days out` };
   }
 
   if (outcome === "not_now") {
     metadata.cadence_state = "not_now";
     metadata.next_due_at = addDaysIso(14);
-    return { status: "not_now", nextFollowUpAt: String(metadata.next_due_at), metadata, eventLabel: "Marked not now" };
+    return { status: "not_now", nextFollowUpAt: String(metadata.next_due_at), metadata, eventLabel: "Paused for 14 days" };
   }
 
   metadata.cadence_state = "do_not_contact";

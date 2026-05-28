@@ -9,6 +9,7 @@ import { statusLabels, type LeadSegment } from "@/lib/types";
 import { aiDraftsEnabled } from "@/lib/ai-drafts";
 import { getPipelineTemplate } from "@/lib/pipeline-templates";
 import { cadenceLabel, stageLabel } from "@/lib/mortgage-workflow";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -57,12 +58,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <Badge tone="blue">{template.segmentLabels[opportunity.segment as LeadSegment] ?? opportunity.segment}</Badge>
               <Badge>{statusLabels[opportunity.status]}</Badge>
               <Badge>{stageLabel(metadataText(metadata, "pipeline_stage"))}</Badge>
-              {metadata.needs_escalation === true ? <Badge tone="yellow">Needs Adam</Badge> : null}
+              {metadata.needs_escalation === true ? <Badge tone="yellow">Escalated to Adam</Badge> : null}
             </div>
             <div className="mt-6 grid gap-5 md:grid-cols-2">
               <Info label="Source" value={opportunity.contact?.source} />
               <Info label="Current stage" value={stageLabel(metadataText(metadata, "pipeline_stage"))} />
-              <Info label="Last meaningful contact" value={metadataText(metadata, "last_meaningful_contact") || opportunity.contact?.last_contact_at} />
+              <Info label="Last meaningful contact" value={formatDate(metadataText(metadata, "last_meaningful_contact") || opportunity.contact?.last_contact_at)} />
               <Info label="Cadence" value={cadenceLabel(metadata)} />
               <Info label="Owner" value={metadataText(metadata, "assigned_owner") || opportunity.contact?.owner_name} />
               <Info label="Next step" value={metadataText(metadata, "next_step")} />
@@ -83,7 +84,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               {(activity ?? []).map((item) => (
                 <div key={`${item.event}-${item.created_at}`} className="rounded-md border border-zinc-200 p-3 text-sm">
                   <div className="font-medium text-zinc-950">{eventLabel(item.event)}</div>
-                  <div className="mt-1 text-zinc-500">{new Date(item.created_at).toLocaleString()}</div>
+                  <div className="mt-1 text-zinc-500">{formatDateTime(item.created_at)}</div>
                   {activityNote(item.metadata) ? <div className="mt-2 text-zinc-700">{activityNote(item.metadata)}</div> : null}
                 </div>
               ))}

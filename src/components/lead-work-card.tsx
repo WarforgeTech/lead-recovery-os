@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui";
 import { CopyValueButton } from "@/components/copy-value-button";
 import { cadenceLabel, stageLabel } from "@/lib/mortgage-workflow";
 import { statusLabels } from "@/lib/types";
+import { formatDate } from "@/lib/format";
 
 type LeadWorkCardOpportunity = {
   id: string;
@@ -40,7 +41,7 @@ export function LeadWorkCard({ item, compact = false }: Readonly<{ item: LeadWor
             </Link>
             <Badge tone={priorityTone(item.priority_score)}>Priority {item.priority_score}</Badge>
             <Badge>{statusLabels[item.status] ?? item.status}</Badge>
-            {metadata.needs_escalation === true ? <Badge tone="yellow">Needs Adam</Badge> : null}
+            {metadata.needs_escalation === true ? <Badge tone="yellow">Escalated to Adam</Badge> : null}
           </div>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
             <span>{item.contact?.source ?? "Unknown source"}</span>
@@ -53,9 +54,9 @@ export function LeadWorkCard({ item, compact = false }: Readonly<{ item: LeadWor
         </div>
         <div className="min-w-[180px] rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm">
           <div className="text-zinc-500">Last contact</div>
-          <div className="mt-1 font-medium text-zinc-950">{item.contact?.last_contact_at ?? "Not provided"}</div>
+          <div className="mt-1 font-medium text-zinc-950">{formatDate(item.contact?.last_contact_at) || "Not provided"}</div>
           <div className="mt-3 text-zinc-500">Next due</div>
-          <div className="mt-1 font-medium text-zinc-950">{String(metadata.next_due_at ?? item.next_follow_up_at ?? "Today")}</div>
+          <div className="mt-1 font-medium text-zinc-950">{formatDate(String(metadata.next_due_at ?? item.next_follow_up_at ?? "")) || "Today"}</div>
         </div>
       </div>
 
@@ -73,17 +74,67 @@ export function LeadWorkCard({ item, compact = false }: Readonly<{ item: LeadWor
 
 export function OutcomePanel({ opportunityId, draft }: Readonly<{ opportunityId: string; draft: string }>) {
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <CopyValueButton value={draft} />
-      <OutcomeButton opportunityId={opportunityId} outcome="mark_contacted" label="Mark contacted" />
-      <OutcomeButton opportunityId={opportunityId} outcome="no_response" label="No response" />
-      <OutcomeButton opportunityId={opportunityId} outcome="replied" label="Replied" />
-      <OutcomeButton opportunityId={opportunityId} outcome="application_submitted" label="Application submitted" />
-      <OutcomeButton opportunityId={opportunityId} outcome="appointment_set" label="Appointment set" />
-      <OutcomeButton opportunityId={opportunityId} outcome="needs_adam" label="Needs Adam" />
-      <OutcomeButton opportunityId={opportunityId} outcome="snooze" label="Snooze 3 days" snoozeDays={3} />
-      <OutcomeButton opportunityId={opportunityId} outcome="not_now" label="Not now" />
-      <OutcomeButton opportunityId={opportunityId} outcome="do_not_contact" label="Do not contact" danger />
+    <div>
+      <div className="mb-2 text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">After outreach</div>
+      <div className="grid grid-cols-2 gap-2">
+        <CopyValueButton value={draft} />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="mark_contacted"
+          label="Outreach done"
+          help="Use after Adam or Janine actually called, emailed, or texted. Schedules the next follow-up."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="no_response"
+          label="No reply"
+          help="Use after outreach when nobody answered. Moves this into the next cadence touch."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="replied"
+          label="They replied"
+          help="Use when the borrower or partner responds. Stops the no-response cadence."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="application_submitted"
+          label="App submitted"
+          help="Use when the borrower completed the application. Removes them from recovery follow-up."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="appointment_set"
+          label="Call booked"
+          help="Use when a consult, review call, or appointment is scheduled."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="needs_adam"
+          label="Escalate to Adam"
+          help="Use when Janine cannot resolve it and Adam needs to personally handle the conversation."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="snooze"
+          label="Follow up in 3 days"
+          snoozeDays={3}
+          help="Use when now is not the right moment, but this should come back soon."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="not_now"
+          label="Pause 14 days"
+          help="Use when the person is not ready but should not be discarded."
+        />
+        <OutcomeButton
+          opportunityId={opportunityId}
+          outcome="do_not_contact"
+          label="Opt out / DNC"
+          help="Use for opt-outs, consent problems, or records that should not be messaged."
+          danger
+        />
+      </div>
     </div>
   );
 }
@@ -92,15 +143,17 @@ function OutcomeButton({
   opportunityId,
   outcome,
   label,
+  help,
   snoozeDays,
   danger = false,
-}: Readonly<{ opportunityId: string; outcome: string; label: string; snoozeDays?: number; danger?: boolean }>) {
+}: Readonly<{ opportunityId: string; outcome: string; label: string; help: string; snoozeDays?: number; danger?: boolean }>) {
   return (
     <form action={updateLeadOutcome}>
       <input type="hidden" name="opportunity_id" value={opportunityId} />
       <input type="hidden" name="outcome" value={outcome} />
       {snoozeDays ? <input type="hidden" name="snooze_days" value={snoozeDays} /> : null}
       <button
+        title={help}
         className={`h-9 w-full rounded-md border px-2 text-xs font-medium ${
           danger
             ? "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
