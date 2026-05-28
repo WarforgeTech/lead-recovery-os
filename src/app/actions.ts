@@ -9,6 +9,8 @@ import { createAdminClient, createClient } from "@/lib/supabase-server";
 import { requireAdmin, requireUser } from "@/lib/data";
 import { traceAsync } from "@/lib/tracing";
 import type { OpportunityStatus } from "@/lib/types";
+import { parseDailyDump } from "@/lib/daily-dump";
+import { applyWorkflowOutcome, type WorkflowOutcome } from "@/lib/mortgage-workflow";
 import {
   classifyPipelineOpportunity,
   defaultOrganizationSettings,
@@ -298,6 +300,145 @@ export async function updateOpportunity(formData: FormData) {
   revalidatePath(`/leads/${opportunityId}`);
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+}
+
+export async function updateLeadOutcome(formData: FormData) {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const opportunityId = String(formData.get("opportunity_id") ?? "");
+  const outcome = String(formData.get("outcome") ?? "mark_contacted") as WorkflowOutcome;
+  const snoozeDays = Number(formData.get("snooze_days") ?? 3);
+  if (!opportunityId) throw new Error("Opportunity is required");
+
+  await traceAsync("opportunity.outcome", { opportunity_id: opportunityId, outcome }, async () => {
+    const { data: opportunity, error } = await supabase
+      .from("lead_opportunities")
+      .select("id, organization_id, status, pipeline_metadata")
+      .eq("id", opportunityId)
+      .single();
+    if (error) throw error;
+
+    const update = applyWorkflowOutcome({
+      currentMetadata: opportunity.pipeline_metadata,
+      currentStatus: opportunity.status,
+      outcome,
+      snoozeDays,
+    });
+
+    const { error: updateError } = await supabase
+      .from("lead_opportunities")
+      .update({
+        status: update.status,
+        next_follow_up_at: update.nextFollowUpAt,
+        pipeline_metadata: update.metadata,
+      })
+      .eq("id", opportunityId);
+    if (updateError) throw updateError;
+
+    await supabase.from("activity_log").insert({
+      organization_id: opportunity.organization_id,
+      actor_user_id: user.id,
+      event: "lead_outcome_updated",
+      metadata: { opportunity_id: opportunityId, outcome, label: update.eventLabel },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  revalidatePath("/leads");
+  revalidatePath(`/leads/${opportunityId}`);
+}
+
+export type DailyDumpState = {
+  status: "idle" | "success" | "error";
+  message: string;
+  updated: number;
+  unmatched: number;
+};
+
+export async function processDailyDump(_previousState: DailyDumpState, formData: FormData): Promise<DailyDumpState> {
+  const user = await requireUser();
+  const supabase = await createClient();
+  const organizationId = String(formData.get("organization_id") ?? "");
+  const dump = String(formData.get("daily_dump") ?? "").trim();
+  if (!organizationId || !dump) return { status: "error", message: "Paste an end-of-day update first.", updated: 0, unmatched: 0 };
+
+  const { data: opportunities, error } = await supabase
+    .from("lead_opportunities")
+    .select("id, status, pipeline_metadata, contact:contacts(name, source, owner_name)")
+    .eq("organization_id", organizationId);
+  if (error) throw error;
+
+  const contacts = (opportunities ?? []).map((item) => {
+    const contact = Array.isArray(item.contact) ? item.contact[0] : item.contact;
+    return {
+      opportunityId: item.id,
+      name: contact?.name ?? "Unknown",
+      source: contact?.source ?? null,
+      stage: typeof item.pipeline_metadata?.pipeline_stage === "string" ? item.pipeline_metadata.pipeline_stage : null,
+      owner: contact?.owner_name ?? null,
+    };
+  });
+
+  const parsed = await parseDailyDump(dump, contacts);
+  let updated = 0;
+
+  for (const item of parsed.updates) {
+    const opportunity = (opportunities ?? []).find((candidate) => candidate.id === item.opportunityId);
+    if (!opportunity) continue;
+    const outcomeUpdate = applyWorkflowOutcome({
+      currentMetadata: {
+        ...(opportunity.pipeline_metadata ?? {}),
+        last_dump_note: item.note,
+        last_dump_confidence: item.confidence,
+      },
+      currentStatus: opportunity.status,
+      outcome: item.outcome,
+    });
+    const { error: updateError } = await supabase
+      .from("lead_opportunities")
+      .update({
+        status: outcomeUpdate.status,
+        next_follow_up_at: outcomeUpdate.nextFollowUpAt,
+        pipeline_metadata: outcomeUpdate.metadata,
+      })
+      .eq("id", item.opportunityId);
+    if (updateError) throw updateError;
+    updated += 1;
+
+    await supabase.from("activity_log").insert({
+      organization_id: organizationId,
+      actor_user_id: user.id,
+      event: "daily_dump_update_applied",
+      metadata: {
+        opportunity_id: item.opportunityId,
+        contact_name: item.contactName,
+        outcome: item.outcome,
+        confidence: item.confidence,
+        note: item.note,
+      },
+    });
+  }
+
+  if (parsed.unmatched.length) {
+    await supabase.from("activity_log").insert({
+      organization_id: organizationId,
+      actor_user_id: user.id,
+      event: "daily_dump_unmatched",
+      metadata: { items: parsed.unmatched },
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  revalidatePath("/leads");
+
+  return {
+    status: "success",
+    message: `Applied ${updated} update${updated === 1 ? "" : "s"}. ${parsed.unmatched.length ? `${parsed.unmatched.length} item${parsed.unmatched.length === 1 ? "" : "s"} need review.` : "No unmatched items."}`,
+    updated,
+    unmatched: parsed.unmatched.length,
+  };
 }
 
 export async function refineDraftWithAi(formData: FormData) {

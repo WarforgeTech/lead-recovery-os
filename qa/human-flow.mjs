@@ -113,14 +113,15 @@ async function reviewerLoginCheck(activeBrowser) {
   await page.waitForURL(/\/dashboard(?:$|\?)/, { timeout: 30000 });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Vercel Reviewer Demo Team", "reviewer workspace dashboard");
-  expectIncludes(text, "Monthly volume goal", "mortgage reviewer dashboard");
-  expectIncludes(text, "Application conversion", "mortgage segment labels");
+  expectIncludes(text, "Today’s Follow-Up Queue", "mortgage reviewer dashboard");
+  expectIncludes(text, "Work this list first", "daily workbench");
+  expectIncludes(text, "End-of-day update", "daily dump box");
   await screenshot(page, "04-reviewer-login.png");
 
   await page.goto(`${appUrl}/pipeline`, { waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Application Conversion Queue", "application conversion queue");
-  expectIncludes(text, "Talked, no application", "talked no application metric");
+  expectIncludes(text, "Application sent, not started", "application not started metric");
 
   await page.goto(`${appUrl}/rescue`, { waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
@@ -139,10 +140,10 @@ async function reviewerLoginCheck(activeBrowser) {
 
   await page.goto(`${appUrl}/rollup`, { waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
-  expectIncludes(text, "CEO / broker rollup", "rollup page");
-  expectIncludes(text, "Before application / first step", "rollup leakage metric");
+  expectIncludes(text, "Reports", "reports page");
+  expectIncludes(text, "Pipeline leakage by stage", "reports leakage metric");
 
-  await writeStep("Reviewer login", "pass", "Access-code reviewer login reached the mortgage workspace and verified pipeline, rescue, tasks, partners, and rollup.");
+  await writeStep("Reviewer login", "pass", "Access-code reviewer login reached the mortgage workspace and verified Today, pipeline, rescue, tasks, partners, and reports.");
 
   await context.close();
 }
@@ -198,7 +199,7 @@ async function clientJourney(activeBrowser) {
   await screenshot(page, "08-client-dashboard.png");
   await writeStep("Client login", "pass", "Invited client reached their workspace dashboard by magic link.");
 
-  await page.getByRole("link", { name: "Leads" }).click();
+  await page.getByRole("link", { name: "Contacts" }).click();
   await page.waitForURL(/\/leads(?:$|\?)/, { timeout: 30000 });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Maria Gutierrez", "lead list imported contact");
@@ -208,15 +209,15 @@ async function clientJourney(activeBrowser) {
   await page.getByRole("link", { name: "Maria Gutierrez" }).first().click();
   await page.waitForURL(/\/leads\/[0-9a-f-]+$/, { timeout: 30000 });
   const leadDetailUrl = page.url();
-  await page.getByLabel("Draft").fill("QA approved follow-up: Maria, checking whether the school-year move is still active.");
+  await page.getByLabel("Suggested message").fill("QA approved follow-up: Maria, checking whether the school-year move is still active.");
   await page.getByLabel("Status").selectOption("approved");
-  await page.getByRole("button", { name: "Save review state" }).click();
+  await page.getByRole("button", { name: "Save text/status only" }).click();
   await page.waitForLoadState("networkidle");
   await waitForApprovedDraft();
   await page.goto(`${leadDetailUrl}?fresh=${Date.now()}`, { waitUntil: "networkidle" });
   text = await page.locator("body").innerText();
   expectIncludes(text, "Approved", "approved status after save");
-  const savedDraft = await page.getByLabel("Draft").inputValue();
+  const savedDraft = await page.getByLabel("Suggested message").inputValue();
   expectIncludes(savedDraft, "QA approved follow-up", "edited draft persisted on page");
   await screenshot(page, "10-approved-lead-detail.png");
   await writeStep("Approve draft", "pass", "Client edited the draft, approved it, reloaded, and saw the saved state.");

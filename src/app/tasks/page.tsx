@@ -7,10 +7,10 @@ export const dynamic = "force-dynamic";
 export default async function TasksPage() {
   const { template, opportunities } = await getActiveWorkspaceView();
   const items = template.id === "mortgage_growth"
-    ? opportunities.filter((item) => metadataText(item, "queue") === "assistant_task")
+    ? opportunities.filter((item) => metadataText(item, "queue") === "docs_stuck")
     : activeQueueItems(opportunities).filter((item) => item.status === "needs_review");
-  const docsMissing = items.filter((item) => metadataText(item, "pipeline_stage") === "docs_missing").length;
-  const creditReview = items.filter((item) => metadataText(item, "pipeline_stage") === "credit_doc_review").length;
+  const docsMissing = items.filter((item) => metadataText(item, "pipeline_stage") === "docs_needed_preapproval_stuck").length;
+  const creditReview = items.filter((item) => metadataText(item, "pipeline_stage") === "pre_qualified").length;
   const overdue = items.filter((item) => Number(item.pipeline_metadata?.days_since_last_meaningful_contact ?? 0) >= 14).length;
 
   return (

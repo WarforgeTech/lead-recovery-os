@@ -1,12 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { refineDraftWithAi, updateOpportunity } from "@/app/actions";
 import { CopyDraftButton } from "@/components/copy-draft-button";
+import { OutcomePanel } from "@/components/lead-work-card";
 import { Badge, Card, Shell } from "@/components/ui";
 import { createClient } from "@/lib/supabase-server";
 import { getActiveOrganizationId, getMemberships, requireUser } from "@/lib/data";
 import { statusLabels, type LeadSegment } from "@/lib/types";
 import { aiDraftsEnabled } from "@/lib/ai-drafts";
 import { getPipelineTemplate } from "@/lib/pipeline-templates";
+import { cadenceLabel, stageLabel } from "@/lib/mortgage-workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -33,87 +35,83 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     .eq("opportunity_id", opportunity.id)
     .maybeSingle();
   if (draftError) throw draftError;
+  const { data: activity, error: activityError } = await supabase
+    .from("activity_log")
+    .select("event, metadata, created_at")
+    .eq("organization_id", organizationId)
+    .eq("metadata->>opportunity_id", opportunity.id)
+    .order("created_at", { ascending: false })
+    .limit(8);
+  if (activityError) throw activityError;
+
+  const metadata = opportunity.pipeline_metadata ?? {};
+  const draftText = draft?.edited_text || draft?.draft_text || "";
   const aiEnabled = aiDraftsEnabled();
 
   return (
-    <Shell title={opportunity.contact?.name ?? "Lead detail"}>
-      <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
-        <Card>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="blue">{template.segmentLabels[opportunity.segment as LeadSegment] ?? opportunity.segment}</Badge>
-            <Badge>{statusLabels[opportunity.status]}</Badge>
-            <Badge>Score {opportunity.priority_score}</Badge>
-            {metadataText(opportunity.pipeline_metadata, "stage_label") ? <Badge>{metadataText(opportunity.pipeline_metadata, "stage_label")}</Badge> : null}
-          </div>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {[
-              ["Source", opportunity.contact?.source],
-              ["Lead type", opportunity.contact?.lead_type],
-              ["Area", opportunity.contact?.area],
-              ["Price range", opportunity.contact?.price_range],
-              ["Timeline", opportunity.contact?.timeline],
-              ["Last contact", opportunity.contact?.last_contact_at],
-              ["Consent", opportunity.contact?.consent],
-              ["Owner", opportunity.contact?.owner_name],
-              ["Pipeline stage", metadataText(opportunity.pipeline_metadata, "stage_label")],
-              ["Next step", metadataText(opportunity.pipeline_metadata, "next_step")],
-              ["Why now", metadataText(opportunity.pipeline_metadata, "why_now")],
-              ["Rescue bucket", metadataText(opportunity.pipeline_metadata, "rescue_bucket")],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <div className="text-sm text-zinc-500">{label}</div>
-                <div className="mt-1 font-medium text-zinc-950">{value || "Not provided"}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 rounded-md border border-zinc-200 bg-zinc-50 p-4">
-            <div className="text-sm font-medium text-zinc-500">Conversation summary</div>
-            <p className="mt-2 text-sm leading-6 text-zinc-700">{opportunity.contact?.normalized_summary}</p>
-          </div>
-          {template.id === "mortgage_growth" ? (
-            <div className="mt-6 grid gap-3 rounded-md border border-zinc-200 p-4 text-sm leading-6 text-zinc-700 md:grid-cols-3">
-              <div>
-                <div className="font-medium text-zinc-950">1. Contact</div>
-                <p className="mt-1">Copy the reviewed draft into the normal email, SMS, phone, or LOS workflow.</p>
-              </div>
-              <div>
-                <div className="font-medium text-zinc-950">2. Update</div>
-                <p className="mt-1">Set the outcome to Contacted, Replied, Appointment set, Not now, or Do not contact.</p>
-              </div>
-              <div>
-                <div className="font-medium text-zinc-950">3. Recycle</div>
-                <p className="mt-1">No response stays out of today&apos;s queue and comes back through the follow-up cadence.</p>
-              </div>
+    <Shell title={opportunity.contact?.name ?? "Contact"}>
+      <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
+        <div className="space-y-6">
+          <Card>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="blue">{template.segmentLabels[opportunity.segment as LeadSegment] ?? opportunity.segment}</Badge>
+              <Badge>{statusLabels[opportunity.status]}</Badge>
+              <Badge>{stageLabel(metadataText(metadata, "pipeline_stage"))}</Badge>
+              {metadata.needs_escalation === true ? <Badge tone="yellow">Needs Adam</Badge> : null}
             </div>
-          ) : null}
-        </Card>
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <Info label="Source" value={opportunity.contact?.source} />
+              <Info label="Current stage" value={stageLabel(metadataText(metadata, "pipeline_stage"))} />
+              <Info label="Last meaningful contact" value={metadataText(metadata, "last_meaningful_contact") || opportunity.contact?.last_contact_at} />
+              <Info label="Cadence" value={cadenceLabel(metadata)} />
+              <Info label="Owner" value={metadataText(metadata, "assigned_owner") || opportunity.contact?.owner_name} />
+              <Info label="Next step" value={metadataText(metadata, "next_step")} />
+            </div>
+            <div className="mt-6 rounded-md border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-sm font-medium text-zinc-500">Why this is here today</div>
+              <p className="mt-2 text-sm leading-6 text-zinc-700">{metadataText(metadata, "why_now") || opportunity.recommended_action}</p>
+            </div>
+            <div className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-4">
+              <div className="text-sm font-medium text-zinc-500">Last message summary</div>
+              <p className="mt-2 text-sm leading-6 text-zinc-700">{opportunity.contact?.normalized_summary || "No summary available yet."}</p>
+            </div>
+          </Card>
+
+          <Card>
+            <h2 className="text-xl font-semibold tracking-tight">Activity timeline</h2>
+            <div className="mt-5 space-y-3">
+              {(activity ?? []).map((item) => (
+                <div key={`${item.event}-${item.created_at}`} className="rounded-md border border-zinc-200 p-3 text-sm">
+                  <div className="font-medium text-zinc-950">{eventLabel(item.event)}</div>
+                  <div className="mt-1 text-zinc-500">{new Date(item.created_at).toLocaleString()}</div>
+                  {activityNote(item.metadata) ? <div className="mt-2 text-zinc-700">{activityNote(item.metadata)}</div> : null}
+                </div>
+              ))}
+              {activity?.length === 0 ? <p className="text-sm text-zinc-500">No activity logged yet.</p> : null}
+            </div>
+          </Card>
+        </div>
 
         <Card>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <h2 className="text-xl font-semibold tracking-tight">Human-approved follow-up</h2>
-            <div className="flex flex-wrap gap-2">
-              {draft?.model_used ? <Badge tone="blue">{draft.model_used.replace("anthropic/", "")}</Badge> : null}
-              {draft?.generated_at ? <Badge>AI refined</Badge> : null}
-            </div>
-          </div>
+          <h2 className="text-xl font-semibold tracking-tight">Follow-up work card</h2>
           <p className="mt-2 text-sm leading-6 text-zinc-600">
-            This system drafts copy. It does not send messages. The client edits and approves before exporting.
+            Review, copy, contact through the normal channel, then click the outcome. Nothing sends from this app.
           </p>
           <form action={updateOpportunity} className="mt-5 space-y-4">
             <input type="hidden" name="opportunity_id" value={opportunity.id} />
             <input type="hidden" name="draft_id" value={draft?.id ?? ""} />
             <label className="block text-sm font-medium text-zinc-700" htmlFor="edited_text">
-              Draft
+              Suggested message
             </label>
             <textarea
               id="edited_text"
               name="edited_text"
-              rows={8}
-              defaultValue={draft?.edited_text || draft?.draft_text || "No draft generated because this record needs consent review."}
+              rows={7}
+              defaultValue={draftText || "No draft generated because this record needs consent review."}
               className="w-full rounded-md border border-zinc-300 p-3 text-sm leading-6 outline-none focus:border-zinc-900"
             />
             <label className="block text-sm font-medium text-zinc-700" htmlFor="status">
-              Status
+              Manual status override
             </label>
             <select
               id="status"
@@ -136,18 +134,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </button>
               ) : null}
               <button className="h-11 rounded-md bg-zinc-950 text-sm font-medium text-white hover:bg-zinc-800 sm:col-span-2">
-                Save review state
+                Save text/status only
               </button>
             </div>
           </form>
-          {!aiEnabled ? (
-            <p className="mt-4 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs leading-5 text-zinc-500">
-              AI Gateway refinement is code-ready and hidden until an AI Gateway key is configured.
-            </p>
-          ) : null}
+          <div className="mt-5 border-t border-zinc-200 pt-5">
+            <OutcomePanel opportunityId={opportunity.id} draft={draftText} />
+          </div>
         </Card>
       </div>
     </Shell>
+  );
+}
+
+function Info({ label, value }: Readonly<{ label: string; value?: string | null }>) {
+  return (
+    <div>
+      <div className="text-sm text-zinc-500">{label}</div>
+      <div className="mt-1 font-medium text-zinc-950">{value || "Not provided"}</div>
+    </div>
   );
 }
 
@@ -155,4 +160,14 @@ function metadataText(metadata: unknown, key: string) {
   if (!metadata || typeof metadata !== "object") return "";
   const value = (metadata as Record<string, unknown>)[key];
   return typeof value === "string" ? value : "";
+}
+
+function eventLabel(event: string) {
+  return event.replaceAll("_", " ");
+}
+
+function activityNote(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return "";
+  const record = metadata as Record<string, unknown>;
+  return String(record.note ?? record.label ?? record.outcome ?? "").trim();
 }

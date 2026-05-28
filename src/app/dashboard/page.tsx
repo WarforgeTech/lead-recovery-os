@@ -1,126 +1,122 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { signOut } from "@/app/actions";
-import { Badge, Card, Shell, Stat } from "@/components/ui";
-import { getActiveOrganizationId, getClientOpportunities, getMemberships, requireUser } from "@/lib/data";
-import { statusLabels, type LeadSegment } from "@/lib/types";
-import { formatCurrency, getPipelineTemplate } from "@/lib/pipeline-templates";
-import type { WorkspaceOpportunity } from "@/lib/workspace-view";
+import { DailyDumpBox } from "@/components/daily-dump-box";
+import { LeadWorkCard } from "@/components/lead-work-card";
+import { Card, Shell, Stat } from "@/components/ui";
+import { getActiveWorkspaceView, metadataNumber, metadataText } from "@/lib/workspace-view";
+import { filterForStage, isDue, matchesWorkflowFilter, workflowFilters, type WorkflowFilter } from "@/lib/mortgage-workflow";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
-  await requireUser();
-  const organizationId = await getActiveOrganizationId();
-  if (!organizationId) redirect("/no-workspace");
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: WorkflowFilter }>;
+}) {
+  const params = await searchParams;
+  const filter = workflowFilters.some((item) => item.id === params.filter) ? params.filter! : "all";
+  const { organizationId, organization, template, opportunities } = await getActiveWorkspaceView();
+  const isMortgage = template.id === "mortgage_growth";
+  const due = opportunities
+    .filter((item) => isDue(item.next_follow_up_at ?? metadataText(item, "next_due_at"), item.status))
+    .sort((a, b) => b.priority_score - a.priority_score);
+  const filtered = due.filter((item) => matchesWorkflowFilter(item, filter));
+  const hotAtRisk = due.filter((item) => (metadataNumber(item, "days_since_last_meaningful_contact") ?? 0) >= 14).length;
+  const applicationFollowUps = due.filter((item) => filterForStage(metadataText(item, "pipeline_stage")) === "application").length;
+  const repliesAppointments = opportunities.filter((item) => ["replied", "appointment_set"].includes(item.status)).length;
 
-  const memberships = await getMemberships();
-  const organization = memberships[0]?.organization as {
-    name?: string;
-    market?: string;
-    pipeline_template?: string;
-    organization_settings?: Record<string, number>;
-  } | undefined;
-  const template = getPipelineTemplate(organization?.pipeline_template);
-  const opportunities = await getClientOpportunities(organizationId);
-  const reachable = opportunities.filter((item) => item.segment !== "needs_consent").length;
-  const priority = opportunities.filter((item) => item.priority_score >= 70 && item.segment !== "needs_consent").length;
-  const approved = opportunities.filter((item) => item.status === "approved").length;
-  const mortgage = template.id === "mortgage_growth" ? mortgageDashboard(opportunities, organization?.organization_settings ?? {}) : null;
-  const bySegment = opportunities.reduce<Record<string, number>>((acc, item) => {
-    acc[item.segment] = (acc[item.segment] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  return (
-    <Shell
-      title={organization?.name ?? "Workspace"}
-      actions={
-        <form action={signOut}>
-          <button className="text-sm text-zinc-600 hover:text-zinc-950">Sign out</button>
-        </form>
-      }
-    >
-      {mortgage ? (
-        <div className="grid gap-4 md:grid-cols-4">
-          <Stat label="Monthly volume goal" value={formatCurrency(mortgage.monthlyGoal)} note={`${mortgage.applicationsPerDay} applications/day target`} />
-          <Stat label="Active pipeline volume" value={formatCurrency(mortgage.activePipeline)} note={`${mortgage.applicationCount} application-path records`} />
-          <Stat label="Gap to monthly goal" value={formatCurrency(mortgage.gapToGoal)} note={`${mortgage.borrowersAtRisk} borrowers in 14/21-day risk`} />
-          <Stat label="Follow-ups due today" value={String(mortgage.followUpsDue)} note={`${mortgage.completedToday} completed or approved`} />
-        </div>
-      ) : (
+  if (!isMortgage) {
+    return (
+      <Shell title={organization?.name ?? "Workspace"} actions={<SignOutButton />}>
         <div className="grid gap-4 md:grid-cols-4">
           <Stat label="Imported contacts" value={String(opportunities.length)} note="Visible inside this workspace" />
-          <Stat label="Reachable leads" value={String(reachable)} note="Consent present and not suppressed" />
-          <Stat label="Priority queue" value={String(priority)} note="Score 70+ for first review" />
-          <Stat label="Approved drafts" value={String(approved)} note="Ready for manual export" />
+          <Stat label="Due today" value={String(due.length)} note="Ready for human review" />
+          <Stat label="Priority queue" value={String(due.filter((item) => item.priority_score >= 70).length)} note="Score 70+ for first review" />
+          <Stat label="Approved drafts" value={String(opportunities.filter((item) => item.status === "approved").length)} note="Ready for manual export" />
         </div>
-      )}
+        <div className="mt-6 space-y-4">
+          {due.map((item) => <LeadWorkCard key={item.id} item={item} />)}
+        </div>
+      </Shell>
+    );
+  }
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <Card>
-          <h2 className="text-xl font-semibold tracking-tight">{mortgage ? "Pipeline stage groups" : "Segments"}</h2>
-          <div className="mt-5 grid gap-3">
-            {(Object.keys(template.segmentLabels) as LeadSegment[]).map((segment) => (
-              <div key={segment} className="flex items-center justify-between rounded-md border border-zinc-200 p-4">
-                <div>
-                  <div className="font-medium">{template.segmentLabels[segment]}</div>
-                  <div className="text-sm text-zinc-500">
-                    {mortgage ? "Mortgage template labels mapped from imported status and notes" : "Recommended action set generated from import data"}
-                  </div>
-                </div>
-                <div className="text-2xl font-semibold">{bySegment[segment] ?? 0}</div>
+  return (
+    <Shell title="Today’s Follow-Up Queue" actions={<SignOutButton />}>
+      <Card className="mb-6">
+        <div className="text-sm text-zinc-500">Workspace</div>
+        <div className="mt-1 text-lg font-semibold text-zinc-950">{organization?.name ?? "Mortgage workspace"}</div>
+        <p className="mt-2 text-sm leading-6 text-zinc-600">
+          Daily recovery layer for application follow-up, stuck pre-approval steps, dead deals, and relationship touches.
+        </p>
+      </Card>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Stat label="Due today" value={String(due.length)} note="People needing action now" />
+        <Stat label="Hot leads at risk" value={String(hotAtRisk)} note="14+ days since meaningful contact" />
+        <Stat label="Application follow-ups" value={String(applicationFollowUps)} note="App link, started, or not submitted" />
+        <Stat label="Replies / appointments" value={String(repliesAppointments)} note="Pilot proof from this workspace" />
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+        <div className="space-y-4">
+          <Card>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Work this list first</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">
+                  These are the people most likely to disappear unless Adam or Janine follows up today.
+                </p>
               </div>
-            ))}
-          </div>
-        </Card>
-        <Card>
-          <h2 className="text-xl font-semibold tracking-tight">{mortgage ? "Next-best actions" : "Top opportunities"}</h2>
-          <div className="mt-5 space-y-3">
-            {opportunities.slice(0, 6).map((item) => (
-              <a key={item.id} href={`/leads/${item.id}`} className="block rounded-md border border-zinc-200 p-3 hover:bg-zinc-50">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">{item.contact?.name}</div>
-                    <div className="mt-1 text-sm text-zinc-500">{metadataText(item.pipeline_metadata, "why_now") || item.recommended_action}</div>
-                  </div>
-                  <Badge tone={item.status === "approved" ? "green" : "neutral"}>{statusLabels[item.status]}</Badge>
-                </div>
-              </a>
-            ))}
-            {opportunities.length === 0 ? <p className="text-sm text-zinc-500">No import has been processed yet.</p> : null}
-          </div>
-        </Card>
+              <Link
+                href="/leads"
+                className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
+              >
+                Search contacts
+              </Link>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {workflowFilters.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.id === "all" ? "/dashboard" : `/dashboard?filter=${item.id}`}
+                  className={`rounded-md border px-3 py-2 text-sm ${
+                    filter === item.id ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </Card>
+
+          {filtered.map((item) => <LeadWorkCard key={item.id} item={item} />)}
+          {filtered.length === 0 ? (
+            <Card>
+              <p className="text-sm text-zinc-500">No contacts match this daily filter right now.</p>
+            </Card>
+          ) : null}
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <h2 className="text-xl font-semibold tracking-tight">How Adam and Janine use this</h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-zinc-700">
+              <p><strong className="text-zinc-950">Adam:</strong> works high-intent borrowers and anything marked Needs Adam.</p>
+              <p><strong className="text-zinc-950">Janine:</strong> clears application reminders, docs, no-response follow-ups, and escalates only the important ones.</p>
+              <p><strong className="text-zinc-950">End of day:</strong> paste a messy recap below instead of manually hunting through every contact.</p>
+            </div>
+          </Card>
+          <DailyDumpBox organizationId={organizationId} />
+        </div>
       </div>
     </Shell>
   );
 }
 
-function mortgageDashboard(opportunities: WorkspaceOpportunity[], settings: Record<string, number>) {
-  const monthlyGoal = Number(settings.monthly_volume_goal_cents ?? 300000000);
-  const applicationsPerDay = Number(settings.applications_per_day_target ?? 2);
-  const activePipeline = opportunities
-    .filter((item) => item.segment !== "needs_consent" && item.status !== "closed_lost")
-    .reduce((sum, item) => sum + Number(item.estimated_value_cents ?? 0), 0);
-  const applicationCount = opportunities.filter((item) =>
-    ["talked_no_application", "application_started", "application_completed"].includes(metadataText(item.pipeline_metadata, "pipeline_stage")),
-  ).length;
-  const borrowersAtRisk = opportunities.filter((item) => Number(item.pipeline_metadata?.days_since_last_meaningful_contact ?? 0) >= 14).length;
-  const followUpsDue = opportunities.filter((item) => !["do_not_contact", "closed_lost", "closed_won"].includes(item.status)).length;
-  const completedToday = opportunities.filter((item) => ["approved", "contacted", "replied", "appointment_set"].includes(item.status)).length;
-  return {
-    monthlyGoal,
-    applicationsPerDay,
-    activePipeline,
-    applicationCount,
-    borrowersAtRisk,
-    followUpsDue,
-    completedToday,
-    gapToGoal: Math.max(0, monthlyGoal - activePipeline),
-  };
-}
-
-function metadataText(metadata: unknown, key: string) {
-  if (!metadata || typeof metadata !== "object") return "";
-  const value = (metadata as Record<string, unknown>)[key];
-  return typeof value === "string" ? value : "";
+function SignOutButton() {
+  return (
+    <form action={signOut}>
+      <button className="text-sm text-zinc-600 hover:text-zinc-950">Sign out</button>
+    </form>
+  );
 }

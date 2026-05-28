@@ -6,6 +6,7 @@ import {
   statusFor,
   type ImportContact,
 } from "./lead-processing";
+import { stageLabel } from "./mortgage-workflow";
 import type { LeadSegment, OpportunityStatus } from "./types";
 
 export type PipelineTemplateId = "real_estate_default" | "mortgage_growth";
@@ -138,7 +139,7 @@ function classifyMortgageOpportunity(contact: ImportContact): PipelineClassifica
   const priorityScore = mortgagePriorityScore(contact, stage, days, loanAmount);
   const action = mortgageRecommendedAction(stage, nextStep, days);
   const draftText = mortgageDraft(contact, stage, nextStep);
-  const stageLabel = mortgageStageLabel(stage);
+  const displayStage = stageLabel(stage);
 
   return {
     segment,
@@ -154,7 +155,7 @@ function classifyMortgageOpportunity(contact: ImportContact): PipelineClassifica
     },
     opportunityMetadata: {
       pipeline_stage: stage,
-      stage_label: stageLabel,
+      stage_label: displayStage,
       queue: mortgageQueue(stage),
       why_now: mortgageWhyNow(stage, days, loanAmount),
       next_step: nextStep,
@@ -162,6 +163,11 @@ function classifyMortgageOpportunity(contact: ImportContact): PipelineClassifica
       rescue_bucket: rescueBucket(days),
       assigned_owner: contact.ownerName,
       referral_source: stringValue(metadata.referral_source),
+      next_due_at: lastMeaningfulContact || new Date().toISOString().slice(0, 10),
+      touch_count: 0,
+      cadence_state: "active",
+      last_outcome: null,
+      needs_escalation: contact.ownerName === "Adam" && stage !== "past_client_referral_partner",
     },
   };
 }
@@ -183,32 +189,31 @@ function mortgageStage(contact: ImportContact) {
     .join(" ")
     .toLowerCase();
 
-  if (/(doc|document|bank statement|signature|stips|condition|missing)/.test(haystack)) return "docs_missing";
-  if (/(partner|referral partner|realtor|agent partner|attorney)/.test(haystack)) return "referral_partner";
-  if (/(past client|closed client|closed loan|review|annual)/.test(haystack)) return "past_client";
-  if (/(pre.?approved|preapproval)/.test(haystack)) return "pre_approved";
+  if (/(dead loan|could not fund|bank.*(denied|declined)|loan process dead|funding fell through)/.test(haystack)) return "loan_process_dead";
+  if (/(declined|not ready|credit issue|income issue|too low|pre.?qual.*fail|pre.?approval declined)/.test(haystack)) return "preapproval_declined_not_ready";
+  if (/(doc|document|bank statement|signature|stips|condition|missing|upload)/.test(haystack)) return "docs_needed_preapproval_stuck";
   if (/(pre.?qualified|prequal)/.test(haystack)) return "pre_qualified";
-  if (/(credit|underwriting|review)/.test(haystack)) return "credit_doc_review";
-  if (/(completed application|application completed|app complete)/.test(haystack)) return "application_completed";
-  if (/(application started|started app|incomplete application|app started|1003 started)/.test(haystack)) return "application_started";
-  if (/(lost|stale|ghosted|went quiet|no response)/.test(haystack)) return "lost_stale";
-  if (/(new referral|referred|intro)/.test(haystack)) return "new_referral";
-  return "talked_no_application";
+  if (/(submitted application|application submitted|completed application|application completed|app complete)/.test(haystack)) return "application_submitted";
+  if (/(application started|started app|incomplete application|app started|1003 started|abandoned)/.test(haystack)) return "application_started_not_submitted";
+  if (/(application sent|sent application|sent app|link sent)/.test(haystack)) return "application_sent_not_started";
+  if (/(contacted.*not sent|needs application link|send application|send app)/.test(haystack)) return "contacted_app_not_sent";
+  if (/(new referral|referred|intro|facebook|imessage|text message|inbound)/.test(haystack)) return "new_inbound_referral";
+  if (/(partner|referral partner|realtor|agent partner|attorney|past client|closed client|closed loan|review|annual)/.test(haystack)) return "past_client_referral_partner";
+  return "contacted_app_not_sent";
 }
 
 function mortgageSegment(stage: string, contact: ImportContact): LeadSegment {
   if (contact.consent !== "ok") return "needs_consent";
-  if (stage === "referral_partner") return "referral_ask";
-  if (stage === "past_client") return "past_client";
-  if (stage === "lost_stale") return "old_buyer";
-  if (stage === "docs_missing" || stage === "credit_doc_review" || stage === "pre_qualified" || stage === "pre_approved") return "old_seller";
+  if (stage === "past_client_referral_partner") return /past client|closed client|annual|review/i.test(contact.leadType ?? "") ? "past_client" : "referral_ask";
+  if (stage === "preapproval_declined_not_ready" || stage === "loan_process_dead") return "old_buyer";
+  if (stage === "docs_needed_preapproval_stuck" || stage === "pre_qualified") return "old_seller";
   return "hot_reactivation";
 }
 
 function mortgageStatus(stage: string, contact: ImportContact): OpportunityStatus {
   if (contact.consent === "do_not_contact") return "do_not_contact";
   if (contact.consent === "review" || stage === "needs_consent") return "needs_review";
-  if (stage === "pre_approved" || stage === "application_completed") return "contacted";
+  if (stage === "application_submitted" || stage === "pre_qualified") return "contacted";
   return "ready_to_contact";
 }
 
@@ -217,9 +222,10 @@ function mortgagePriorityScore(contact: ImportContact, stage: string, days: numb
   if (contact.email) score += 8;
   if (contact.phone) score += 8;
   if (loanAmount >= 400000) score += 10;
-  if (stage === "talked_no_application" || stage === "application_started") score += 20;
-  if (stage === "docs_missing") score += 15;
-  if (stage === "referral_partner") score += 12;
+  if (["contacted_app_not_sent", "application_sent_not_started", "application_started_not_submitted"].includes(stage)) score += 20;
+  if (stage === "docs_needed_preapproval_stuck") score += 15;
+  if (stage === "past_client_referral_partner") score += 12;
+  if (stage === "loan_process_dead" || stage === "preapproval_declined_not_ready") score += 10;
   if (days !== null && days >= 8 && days <= 21) score += 15;
   if (days !== null && days > 21) score += 8;
   if (contact.consent !== "ok") score = Math.min(score, 35);
@@ -228,11 +234,13 @@ function mortgagePriorityScore(contact: ImportContact, stage: string, days: numb
 
 function mortgageRecommendedAction(stage: string, nextStep: string, days: number | null) {
   if (stage === "needs_consent") return "Review contact source and consent before drafting outbound follow-up.";
-  if (stage === "referral_partner") return "Send a relationship-first partner check-in without referral-compensation language.";
-  if (stage === "past_client") return "Send a personal check-in and ask whether they know anyone who needs lending guidance.";
-  if (stage === "docs_missing") return `Have assistant follow up on ${nextStep.toLowerCase()} and offer hand-holding.`;
-  if (stage === "application_started") return "Push the borrower back to the incomplete application before the 14/21-day drop-off window.";
-  if (stage === "talked_no_application") return "Ask whether they want the application link again and offer help finishing the first step.";
+  if (stage === "past_client_referral_partner") return "Send a relationship-first check-in without referral-compensation language.";
+  if (stage === "docs_needed_preapproval_stuck") return `Have assistant follow up on ${nextStep.toLowerCase()} and offer hand-holding.`;
+  if (stage === "application_started_not_submitted") return "Push the borrower back to the incomplete application before the 14/21-day drop-off window.";
+  if (stage === "application_sent_not_started") return "Remind them the application link is waiting and offer help with the first step.";
+  if (stage === "contacted_app_not_sent") return "Send the application link and offer to walk them through the first step.";
+  if (stage === "preapproval_declined_not_ready") return "Check whether the blocker has changed and offer a fresh path review.";
+  if (stage === "loan_process_dead") return "Resurface the dead file and ask whether timing or lender options have changed.";
   if (days !== null && days >= 15) return "Rescue now; this borrower is in the 15-21+ day drop-off zone.";
   return "Send the next-best-action follow-up and keep the borrower moving toward application.";
 }
@@ -241,61 +249,52 @@ function mortgageDraft(contact: ImportContact, stage: string, nextStep: string) 
   if (contact.consent !== "ok") return "";
   const firstName = contact.name.split(/\s+/)[0] || "there";
   const owner = contact.ownerName || "Adam";
-  if (stage === "referral_partner") {
+  if (stage === "past_client_referral_partner") {
     return `Hey ${firstName}, ${owner} here. I am tightening up how I help borrowers who stall before application or docs. If anyone in your world is stuck or unsure what to do next, I am happy to help them get clear on the next step.`;
   }
-  if (stage === "past_client") {
-    return `Hi ${firstName}, ${owner} here. I wanted to check in and see how everything has been since closing. If you or someone you trust has mortgage questions this year, I am happy to be a resource.`;
-  }
-  if (stage === "docs_missing") {
+  if (stage === "docs_needed_preapproval_stuck") {
     return `Hi ${firstName}, ${owner} here. I saw the next step is ${nextStep.toLowerCase()}. If anything about the upload or signatures is confusing, we can walk through it with you.`;
   }
-  if (stage === "application_started") {
+  if (stage === "application_started_not_submitted") {
     return `Hi ${firstName}, ${owner} here. It looks like the application was started but not finished. Want me to resend the link and help you get the remaining step knocked out?`;
+  }
+  if (stage === "application_sent_not_started") {
+    return `Hi ${firstName}, ${owner} here. I sent the application link over, but I do not see it started yet. Want me to resend it and help with the first step?`;
+  }
+  if (stage === "preapproval_declined_not_ready" || stage === "loan_process_dead") {
+    return `Hi ${firstName}, ${owner} here. I wanted to check back in because situations change. If you are still thinking about buying, I am happy to review where things stand and what the next best path might be.`;
   }
   return `Hi ${firstName}, ${owner} here. We talked about your loan path, but I do not see the application finished yet. Are you still moving forward, or did timing change?`;
 }
 
-function mortgageStageLabel(stage: string) {
-  const labels: Record<string, string> = {
-    new_referral: "New referral",
-    talked_no_application: "Talked, no application",
-    application_started: "Application started",
-    application_completed: "Application completed",
-    pre_qualified: "Pre-qualified",
-    docs_missing: "Docs missing",
-    credit_doc_review: "Credit/doc review",
-    pre_approved: "Pre-approved",
-    lost_stale: "Lost or stale",
-    referral_partner: "Referral partner",
-    past_client: "Past client",
-    needs_consent: "Needs consent",
-  };
-  return labels[stage] ?? "Pipeline follow-up";
-}
-
 function mortgageQueue(stage: string) {
-  if (stage === "referral_partner") return "referral_partner";
-  if (stage === "docs_missing" || stage === "credit_doc_review") return "assistant_task";
-  if (stage === "lost_stale") return "rescue";
-  if (stage === "talked_no_application" || stage === "application_started" || stage === "new_referral") return "application_conversion";
+  if (stage === "past_client_referral_partner") return "relationship";
+  if (stage === "docs_needed_preapproval_stuck" || stage === "pre_qualified") return "docs_stuck";
+  if (stage === "preapproval_declined_not_ready" || stage === "loan_process_dead") return "dead_deal";
+  if (["contacted_app_not_sent", "application_sent_not_started", "application_started_not_submitted", "new_inbound_referral"].includes(stage)) return "application_follow_up";
   return "next_best_action";
 }
 
 function mortgageWhyNow(stage: string, days: number | null, loanAmount: number) {
-  if (stage === "application_started") return "The application is started but incomplete, which is the highest-leverage conversion leak.";
-  if (stage === "talked_no_application") return "Borrower has had a conversation but has not crossed into application.";
-  if (stage === "docs_missing") return "The borrower needs hand-holding before the file can advance.";
-  if (stage === "referral_partner") return "Referral-driven pipeline needs consistent relationship touches.";
+  if (stage === "application_started_not_submitted") return "The application was started but never submitted, which is the highest-leverage conversion leak.";
+  if (stage === "application_sent_not_started") return "The application link was sent, but the borrower never started it.";
+  if (stage === "contacted_app_not_sent") return "The borrower had intent, but the application step never happened.";
+  if (stage === "docs_needed_preapproval_stuck") return "The borrower needs hand-holding before pre-approval can move forward.";
+  if (stage === "preapproval_declined_not_ready") return "This person was not ready before, but the blocker may have changed.";
+  if (stage === "loan_process_dead") return "The deal died in process and was never put back into a recovery cadence.";
+  if (stage === "past_client_referral_partner") return "Relationship-driven pipeline needs consistent useful touches.";
   if (days !== null && days >= 15) return `${days} days since meaningful contact; this is inside the 14/21-day danger zone.`;
   return `${formatCurrency(loanAmount * 100)} estimated loan amount in active pipeline.`;
 }
 
 function nextStepForMortgageStage(stage: string) {
-  if (stage === "docs_missing") return "missing documents";
-  if (stage === "application_started") return "complete application";
-  if (stage === "talked_no_application") return "finish application";
-  if (stage === "referral_partner") return "relationship check-in";
+  if (stage === "docs_needed_preapproval_stuck") return "missing documents";
+  if (stage === "application_started_not_submitted") return "submit application";
+  if (stage === "application_sent_not_started") return "start application";
+  if (stage === "contacted_app_not_sent") return "send application link";
+  if (stage === "preapproval_declined_not_ready") return "fresh path review";
+  if (stage === "loan_process_dead") return "restart conversation";
+  if (stage === "past_client_referral_partner") return "relationship check-in";
   return "next borrower follow-up";
 }
 

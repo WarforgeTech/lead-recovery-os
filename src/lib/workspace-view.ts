@@ -9,6 +9,7 @@ export type WorkspaceOpportunity = {
   priority_score: number;
   estimated_value_cents: number;
   recommended_action: string | null;
+  next_follow_up_at?: string | null;
   pipeline_metadata: Record<string, unknown> | null;
   contact?: {
     name?: string | null;
@@ -17,6 +18,7 @@ export type WorkspaceOpportunity = {
     last_contact_at?: string | null;
     normalized_summary?: string | null;
   } | null;
+  drafts?: Array<{ draft_text?: string | null; edited_text?: string | null }> | null;
 };
 
 export async function getActiveWorkspaceView() {

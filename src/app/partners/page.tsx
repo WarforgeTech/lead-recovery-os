@@ -7,9 +7,9 @@ export const dynamic = "force-dynamic";
 export default async function PartnersPage() {
   const { template, opportunities } = await getActiveWorkspaceView();
   const items = template.id === "mortgage_growth"
-    ? opportunities.filter((item) => metadataText(item, "queue") === "referral_partner")
+    ? opportunities.filter((item) => metadataText(item, "queue") === "relationship")
     : opportunities.filter((item) => item.segment === "referral_ask" || item.segment === "past_client");
-  const partners = items.filter((item) => metadataText(item, "pipeline_stage") === "referral_partner").length;
+  const partners = items.filter((item) => item.segment === "referral_ask").length;
   const pastClients = items.filter((item) => item.segment === "past_client").length;
 
   return (

@@ -9,7 +9,7 @@ const buckets = ["0-7 days", "8-14 days", "15-21 days", "22+ days", "No contact 
 export default async function RescuePage() {
   const { template, opportunities } = await getActiveWorkspaceView();
   const items = template.id === "mortgage_growth"
-    ? opportunities.filter((item) => metadataText(item, "queue") === "rescue" || (metadataNumber(item, "days_since_last_meaningful_contact") ?? 0) >= 8)
+    ? opportunities.filter((item) => metadataText(item, "queue") === "dead_deal" || (metadataNumber(item, "days_since_last_meaningful_contact") ?? 0) >= 8)
     : activeQueueItems(opportunities).filter((item) => item.priority_score >= 70);
   const counts = Object.fromEntries(buckets.map((bucket) => [bucket, items.filter((item) => metadataText(item, "rescue_bucket") === bucket).length]));
 

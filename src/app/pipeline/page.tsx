@@ -7,19 +7,19 @@ export const dynamic = "force-dynamic";
 export default async function PipelinePage() {
   const { template, opportunities } = await getActiveWorkspaceView();
   const items = template.id === "mortgage_growth"
-    ? opportunities.filter((item) => metadataText(item, "queue") === "application_conversion")
+    ? opportunities.filter((item) => metadataText(item, "queue") === "application_follow_up")
     : activeQueueItems(opportunities).slice(0, 50);
-  const started = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "application_started").length;
-  const noApplication = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "talked_no_application").length;
-  const completed = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "application_completed").length;
+  const notStarted = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "application_sent_not_started").length;
+  const started = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "application_started_not_submitted").length;
+  const completed = opportunities.filter((item) => metadataText(item, "pipeline_stage") === "application_submitted").length;
 
   return (
     <Shell title={template.id === "mortgage_growth" ? "Application conversion" : "Pipeline"}>
       {template.id === "mortgage_growth" ? (
         <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <Stat label="Talked, no application" value={String(noApplication)} note="Primary pre-application leak" />
-          <Stat label="Application started" value={String(started)} note="Needs completion push" />
-          <Stat label="Applications completed" value={String(completed)} note="Moved through first conversion step" />
+          <Stat label="Application sent, not started" value={String(notStarted)} note="Primary pre-application leak" />
+          <Stat label="Application started, not submitted" value={String(started)} note="Needs completion push" />
+          <Stat label="Applications submitted" value={String(completed)} note="Moved through first conversion step" />
         </div>
       ) : null}
       <PipelineList
