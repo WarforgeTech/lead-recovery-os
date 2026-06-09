@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pipeline Recovery OS - Video Tutorial Runbook</title>
+  <style>
+    :root {
+      --ink: #18181b;
+      --muted: #52525b;
+      --soft: #71717a;
+      --line: #d4d4d8;
+      --panel: #ffffff;
+      --wash: #f4f4f5;
+      --dark: #09090b;
+      --good: #047857;
+      --warn: #a16207;
+      --bad: #be123c;
+      --blue: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--wash); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 40px 24px 80px; }
+    .hero {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 34px;
+      box-shadow: 0 18px 50px rgb(24 24 27 / 0.06);
+    }
+    .eyebrow { color: var(--soft); font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+    h1 { margin: 12px 0 0; font-size: 46px; line-height: 1.02; letter-spacing: -0.035em; }
+    h2 { margin: 0 0 14px; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; }
+    h3 { margin: 0 0 10px; font-size: 18px; line-height: 1.25; }
+    p { margin: 0; color: var(--muted); line-height: 1.65; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .lead { margin-top: 18px; max-width: 820px; font-size: 18px; color: #3f3f46; }
+    .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+    .meta {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fafafa;
+      padding: 16px;
+    }
+    .meta strong { display: block; margin-bottom: 5px; font-size: 20px; }
+    .meta span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .section { margin-top: 28px; border: 1px solid var(--line); background: var(--panel); border-radius: 16px; padding: 28px; }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr); gap: 22px; align-items: start; }
+    .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .callout { border-left: 4px solid var(--dark); background: #fafafa; padding: 16px 18px; border-radius: 10px; }
+    .callout.good { border-left-color: var(--good); }
+    .callout.warn { border-left-color: var(--warn); }
+    .callout.bad { border-left-color: var(--bad); }
+    .callout p { font-size: 14px; }
+    .steps { counter-reset: step; display: grid; gap: 14px; }
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 18px 18px 18px 58px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--dark);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .step small { display: block; color: var(--soft); margin-top: 6px; line-height: 1.55; }
+    .script {
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .script p { color: #312e81; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+    code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 6px; color: #27272a; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 14px;
+      padding: 16px;
+      line-height: 1.55;
+      overflow: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 10px; text-align: left; vertical-align: top; }
+    th { color: #27272a; background: #fafafa; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+    td { color: var(--muted); line-height: 1.5; }
+    .pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; color: #27272a; background: #fff; }
+    .timeline { display: grid; gap: 10px; }
+    .timeline .row { display: grid; grid-template-columns: 150px 1fr; gap: 14px; border-bottom: 1px solid #e4e4e7; padding-bottom: 10px; }
+    .time { color: var(--soft); font-size: 13px; font-weight: 700; }
+    .gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+    figure img { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--line); }
+    figcaption { padding: 10px 12px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .footer { color: var(--soft); font-size: 13px; margin-top: 24px; text-align: center; }
+
+    @media (max-width: 860px) {
+      h1 { font-size: 34px; }
+      .meta-grid, .three, .two, .gallery { grid-template-columns: 1fr; }
+      .timeline .row { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      html { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .section, .hero, .step, figure { break-inside: avoid; box-shadow: none; }
+      a { color: #000; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">Video tutorial runbook</div>
+      <h1>How to demo Pipeline Recovery OS from a brand-new production account</h1>
+      <p class="lead">
+        This is the exact walkthrough to record on production: create a new workspace in the live Vercel app, upload the scattered synthetic lead data, watch the production Railway worker process it, review the cleaned rows, accept the import, and show how Adam or Janine works the daily queue.
+      </p>
+      <div class="meta-grid">
+        <div class="meta"><strong>100</strong><span>Initial scattered records across CRM, Facebook, text notes, and seller notes.</span></div>
+        <div class="meta"><strong>35</strong><span>Second import with duplicates, new activity, and new records.</span></div>
+        <div class="meta"><strong>49</strong><span>Suppression records created after exclusions and matching scrub rules.</span></div>
+        <div class="meta"><strong>78</strong><span>Active contacts and opportunities after suppression and merge.</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>The story to tell on video</h2>
+      <div class="script">
+        <p>
+          "Pipeline Recovery OS is not trying to replace a CRM. It is the recovery layer for leads that already fell out of the day-to-day sales process. A loan officer gets referrals from text messages, Facebook, email, open houses, and old CRM exports. The problem is not that they do not know how to sell. The problem is that hot people disappear after one or two touches. This system imports the messy data, scrubs out closed or do-not-contact records, merges duplicate touchpoints into one journey, and turns the remaining people into a daily follow-up queue with human-approved messages."
+        </p>
+      </div>
+      <div class="three" style="margin-top: 16px;">
+        <div class="callout">
+          <h3>Business problem</h3>
+          <p>Hot leads go cold because the team cannot remember every referral, app link, partial application, declined file, and dead deal.</p>
+        </div>
+        <div class="callout">
+          <h3>Product answer</h3>
+          <p>Bring messy old data into one reviewable queue, then tell the user who to contact today, why, and what to say.</p>
+        </div>
+        <div class="callout">
+          <h3>Safety posture</h3>
+          <p>No outbound sending in v1. Suppression rules happen before drafts. Human acceptance gates every import.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Before recording</h2>
+      <div class="two">
+        <div>
+          <div class="steps">
+            <div class="step">
+              <h3>Open the production app</h3>
+              <p>Record against the live Vercel deployment, not localhost.</p>
+              <pre>https://lead-recovery-os.vercel.app</pre>
+            </div>
+            <div class="step">
+              <h3>Confirm the production worker is deployed</h3>
+              <p>The import worker runs as a Railway background service. It does not need a public URL; production proof is that it claims queued jobs and advances the import progress screen.</p>
+              <pre>Railway project: pipeline-recovery-os-worker
+Railway service: import-worker
+Environment: production</pre>
+            </div>
+            <div class="step">
+              <h3>Have the demo data folder ready</h3>
+              <p>Use the data generated and tested in this repo. You will upload these local files into the production app from your browser.</p>
+              <pre>/Users/warforge/Projects/lead-recovery-os/demo-import-data/pipeline-recovery-os-demo</pre>
+            </div>
+          </div>
+        </div>
+        <div class="callout warn">
+          <h3>Production signup path</h3>
+          <p>
+            Use the real production signup flow for the video. Go to <code>/signup</code>, enter a fresh email you control, open the Supabase magic link, and continue into workspace setup.
+          </p>
+          <pre>https://lead-recovery-os.vercel.app/signup</pre>
+          <p style="margin-top: 10px;">If you need to avoid showing your inbox on camera, pause the recording while opening the magic link, then resume on the workspace setup screen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Demo file order</h2>
+      <p style="margin-bottom: 16px;">For the cleanest video, import exclusions first, then the scattered lead sources, then the follow-up journey update.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>File</th>
+            <th>Select this import type</th>
+            <th>What to say</th>
+            <th>Expected result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>raw-exclusions-dnc-closed.txt</code></td>
+            <td>Do-not-contact</td>
+            <td>"Before we recover leads, we scrub anyone closed, opted out, bad contact, or not safe to message."</td>
+            <td>9 suppressed rows, 0 active contacts.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>crm-export-40.csv</code></td>
+            <td>Inactive leads</td>
+            <td>"This is the old CRM export. The system parses rows, normalizes fields, and checks them against the suppression list."</td>
+            <td>28 ready, 12 suppressed.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>facebook-open-house-30.csv</code></td>
+            <td>Inactive leads</td>
+            <td>"These are leads from Facebook and open house style sources. Same workflow, different source shape."</td>
+            <td>21 ready, 9 suppressed.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>text-message-notes-20.txt</code></td>
+            <td>Inactive leads</td>
+            <td>"This is messy text, closer to copied iMessage or call notes. The worker splits it into individual records."</td>
+            <td>14 ready, 6 suppressed.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>seller-valuation-notes-10.txt</code></td>
+            <td>Inactive leads</td>
+            <td>"This shows seller-style notes and valuation conversations, not just buyer leads."</td>
+            <td>7 ready, 3 suppressed.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>journey-update-import-35.csv</code></td>
+            <td>Inactive leads</td>
+            <td>"This is a second dump later. It contains duplicate people plus new context. The system should merge journey updates instead of duplicating the contact."</td>
+            <td>25 ready, 10 suppressed, 17 merges, 8 creates.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Click-by-click video workflow</h2>
+      <div class="steps">
+        <div class="step">
+          <h3>Open the app</h3>
+          <p>Start at <code>https://lead-recovery-os.vercel.app</code>. Explain that this is the production product surface, while <code>/demo</code> is only the public pitch page.</p>
+          <small>Say: "For this video I am going through the private product, not just the public demo."</small>
+        </div>
+        <div class="step">
+          <h3>Sign up with a fresh email</h3>
+          <p>Click <strong>Sign up</strong>, enter an email you control, and open the production magic link. Pause the recording while opening the email if needed.</p>
+          <small>Say: "This is a passwordless product. Clients get a secure magic link instead of managing another password."</small>
+        </div>
+        <div class="step">
+          <h3>Create the workspace</h3>
+          <p>Use a name like <code>Demo Mortgage Team</code>. Choose <strong>Mortgage growth</strong>. Pick <strong>Broker / team lead</strong> or <strong>Loan officer</strong>. Market: <code>Houston, TX</code>.</p>
+          <small>Say: "Templates let the same core system speak mortgage, real estate, or future local sales language without forking the product."</small>
+        </div>
+        <div class="step">
+          <h3>Start with the exclusions import</h3>
+          <p>On the import screen, choose <strong>Do-not-contact</strong>, upload <code>raw-exclusions-dnc-closed.txt</code>, and click <strong>Clean and review leads</strong>.</p>
+          <small>Say: "The safe sequence is exclusions first. We do not want closed, opted-out, or bad-contact records becoming drafts."</small>
+        </div>
+        <div class="step">
+          <h3>Show the processing screen</h3>
+          <p>Pause on the progress page. Point to the phases: archived, reading file, parsing, normalizing, deduping, scrubbing exclusions, reconstructing journeys, preparing review.</p>
+          <small>Say: "The browser is not doing this work. The production Railway worker is processing the file and writing progress to Supabase. The production Vercel app polls for status."</small>
+        </div>
+        <div class="step">
+          <h3>Review and accept</h3>
+          <p>When the review page opens, explain Ready, Needs review, and Suppressed. For the exclusions file, accept the import so the suppression list is committed.</p>
+          <small>Say: "Human acceptance is the commit boundary. The worker stages rows. The user accepts before anything enters the queue."</small>
+        </div>
+        <div class="step">
+          <h3>Repeat the same process for all lead files</h3>
+          <p>Upload the four first-batch lead files, accepting each one. Then upload the second journey update file last.</p>
+          <small>Say: "The final file proves the system can add to a customer's journey later instead of creating duplicate people."</small>
+        </div>
+        <div class="step">
+          <h3>Open Today's Follow-Up Queue</h3>
+          <p>After accepting the last import, go to <strong>Today</strong>. You should see the daily workbench with due leads, hot leads at risk, application follow-ups, and reply/appointment counts.</p>
+          <small>Say: "This is the actual daily surface. Adam or Janine should not live in ten tabs. They work this list first."</small>
+        </div>
+        <div class="step">
+          <h3>Show one lead card</h3>
+          <p>Point to the lead name, source, stage, owner, touch count, last contact, why now, next step, suggested message, and outcome buttons.</p>
+          <small>Say: "The tool answers four questions: who needs follow-up, why now, what should I say, and what happened after I reached out."</small>
+        </div>
+        <div class="step">
+          <h3>Click an outcome button</h3>
+          <p>Click <strong>No reply</strong> on one lead. The lead should leave the immediate queue and get a next follow-up date.</p>
+          <small>Say: "The user is not updating a CRM manually. They are recording the outcome of the action they just took."</small>
+        </div>
+        <div class="step">
+          <h3>Use the end-of-day update box</h3>
+          <p>Paste a messy recap like the one below and click <strong>Apply updates</strong>.</p>
+          <pre>Drew Foster did not respond after I sent the app link. Jordan Irwin needs Adam to call tomorrow. Skyler Lopez booked a call for Monday. Unknown Borrower asked about a loan but I cannot match them.</pre>
+          <small>Say: "This is the relief valve for busy teams. If Janine does not have time to hunt through records, she can paste the recap and the system applies what it can match."</small>
+        </div>
+        <div class="step">
+          <h3>Show Contacts and Imports</h3>
+          <p>Use <strong>Contacts</strong> as searchable memory and <strong>Imports</strong> as the audit trail. Explain that imports show raw archive metadata and review history.</p>
+          <small>Say: "Contacts is memory. Today is work. Reports is proof. Imports is auditability."</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Processing screen narration</h2>
+      <div class="timeline">
+        <div class="row"><div class="time">Queued</div><p>The job is created in Supabase and waiting for the worker.</p></div>
+        <div class="row"><div class="time">Archived</div><p>The raw input is stored privately for audit and future reprocessing.</p></div>
+        <div class="row"><div class="time">Reading file</div><p>The worker downloads the raw file and detects the source format.</p></div>
+        <div class="row"><div class="time">Parsing</div><p>CSV, text, spreadsheet, JSON, VCF, DOCX, or text PDF data is turned into raw rows.</p></div>
+        <div class="row"><div class="time">Normalizing</div><p>Names, phones, emails, dates, statuses, notes, and sources are cleaned.</p></div>
+        <div class="row"><div class="time">Removing duplicates</div><p>Repeated touchpoints are grouped into one lead journey where possible.</p></div>
+        <div class="row"><div class="time">Scrubbing exclusions</div><p>DNC, opt-out, closed, funded elsewhere, and invalid records are held out before drafts are created.</p></div>
+        <div class="row"><div class="time">Reconstructing journeys</div><p>AI can be used for ambiguous notes when configured. Otherwise deterministic fallback keeps the import moving.</p></div>
+        <div class="row"><div class="time">Ready for review</div><p>The import is staged. Nothing becomes an active contact until the user accepts it.</p></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>How to explain the final numbers</h2>
+      <div class="three">
+        <div class="callout good">
+          <h3>Ready</h3>
+          <p>Good enough to become active contacts and opportunities after acceptance.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Suppressed</h3>
+          <p>Excluded because of DNC, closed/dead status, bad contact, or a prior suppression match.</p>
+        </div>
+        <div class="callout">
+          <h3>Merged</h3>
+          <p>Rows from the second import matched existing contacts and extended the journey instead of duplicating people.</p>
+        </div>
+      </div>
+      <table style="margin-top: 18px;">
+        <thead>
+          <tr><th>Final tested state</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="pill">78 contacts</span></td><td>The active people left after suppression and merge.</td></tr>
+          <tr><td><span class="pill">78 opportunities</span></td><td>Each active contact has a recovery opportunity in the daily queue.</td></tr>
+          <tr><td><span class="pill">49 exclusions</span></td><td>Suppressed records accumulated from the exclusion file and matching scrub rules.</td></tr>
+          <tr><td><span class="pill">17 merges</span></td><td>The repeat import added context to existing people instead of creating duplicates.</td></tr>
+          <tr><td><span class="pill">8 creates</span></td><td>The repeat import also contained genuinely new leads.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Presenter script for the daily workflow</h2>
+      <div class="script">
+        <p>
+          "After onboarding, the day-to-day is simple. Adam or Janine opens Today. They do not go hunt through a CRM. The system gives them the people most likely to disappear today, shows why the person is on the list, gives them a suggested follow-up, and asks them to record the outcome. If nobody replies, the cadence schedules the next touch. If the borrower replies, the no-response cadence stops. If an application is submitted, that person moves out of recovery. If Janine needs Adam, she escalates it with one click. At the end of the day, if she has a messy recap, she pastes it into the end-of-day update box and the system applies the matched updates."
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Useful screenshots from the passing QA run</h2>
+      <p style="margin-bottom: 16px;">These are generated by the automated browser QA suite and can be used as reference frames while editing the video.</p>
+      <div class="gallery">
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/01-onboarding-profile.png" alt="Workspace setup screen" />
+          <figcaption>Workspace setup after signup.</figcaption>
+        </figure>
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/processing-crm-export-40.csv.png" alt="Import processing screen" />
+          <figcaption>Live import processing phases.</figcaption>
+        </figure>
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/review-journey-update-import-35.csv.png" alt="Review import screen" />
+          <figcaption>Review screen for the repeat journey import.</figcaption>
+        </figure>
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/dashboard-after-imports.png" alt="Today's Follow-Up Queue" />
+          <figcaption>Daily workbench after all imports.</figcaption>
+        </figure>
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/outcome-no-reply.png" alt="Outcome button test" />
+          <figcaption>No reply outcome persisted and scheduled the next follow-up.</figcaption>
+        </figure>
+        <figure>
+          <img src="../qa/reports/selfserve-20260604180139/screenshots/daily-dump-applied.png" alt="Daily dump applied" />
+          <figcaption>End-of-day update applied matched outcomes and logged an unmatched item.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Exact validation command</h2>
+      <p style="margin-bottom: 12px;">Run this when you want to prove the whole production path still works after changes. It creates and deletes a QA workspace in production.</p>
+      <pre>cd /Users/warforge/Projects/lead-recovery-os
+APP_URL=https://lead-recovery-os.vercel.app npm run qa:selfserve-import</pre>
+      <p>
+        Latest production passing report: <a href="../qa/reports/selfserve-20260604180139/REPORT.md">qa/reports/selfserve-20260604180139/REPORT.md</a>
+      </p>
+    </section>
+
+    <p class="footer">Pipeline Recovery OS tutorial. Synthetic data only. No outbound messages are sent in this workflow.</p>
+  </main>
+</body>
+</html>

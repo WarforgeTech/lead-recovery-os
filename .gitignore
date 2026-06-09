@@ -47,3 +47,6 @@ qa/reports/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SWC plugin cache (build artifact)
+.swc/

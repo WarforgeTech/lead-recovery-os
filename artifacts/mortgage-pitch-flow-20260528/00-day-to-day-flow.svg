@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#f7f7f6"/>
+  <text x="80" y="92" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="700" fill="#0a0a0a">Pipeline Recovery OS: Daily Mortgage Workflow</text>
+  <text x="80" y="136" font-family="Inter, Arial, sans-serif" font-size="22" fill="#555">After white-glove import, the team works a small prioritized queue instead of digging through the CRM.</text>
+
+  <g transform="translate(80 210)">
+    <rect width="260" height="250" rx="10" fill="#fff" stroke="#d9d9d6"/>
+    <text x="28" y="50" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#111">1. Dashboard</text>
+    <text x="28" y="92" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">Check goal gap,</text>
+    <text x="28" y="122" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">pipeline value, and</text>
+    <text x="28" y="152" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">follow-ups due today.</text>
+    <text x="28" y="205" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Owner: broker / LO</text>
+  </g>
+
+  <g transform="translate(390 210)">
+    <rect width="260" height="250" rx="10" fill="#fff" stroke="#d9d9d6"/>
+    <text x="28" y="50" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#111">2. Pipeline</text>
+    <text x="28" y="92" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">Push talked-no-app</text>
+    <text x="28" y="122" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">and application-started</text>
+    <text x="28" y="152" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">borrowers forward.</text>
+    <text x="28" y="205" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Owner: broker / LO</text>
+  </g>
+
+  <g transform="translate(700 210)">
+    <rect width="260" height="250" rx="10" fill="#fff" stroke="#d9d9d6"/>
+    <text x="28" y="50" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#111">3. Rescue</text>
+    <text x="28" y="92" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">Recover borrowers in</text>
+    <text x="28" y="122" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">the 8-14, 15-21,</text>
+    <text x="28" y="152" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">and 22+ day buckets.</text>
+    <text x="28" y="205" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Owner: LO + assistant</text>
+  </g>
+
+  <g transform="translate(1010 210)">
+    <rect width="260" height="250" rx="10" fill="#fff" stroke="#d9d9d6"/>
+    <text x="28" y="50" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#111">4. Tasks</text>
+    <text x="28" y="92" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">Clear missing docs,</text>
+    <text x="28" y="122" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">signature help, and</text>
+    <text x="28" y="152" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">stuck borrower steps.</text>
+    <text x="28" y="205" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Owner: assistant</text>
+  </g>
+
+  <g transform="translate(1320 210)">
+    <rect width="200" height="250" rx="10" fill="#fff" stroke="#d9d9d6"/>
+    <text x="24" y="50" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#111">5. Rollup</text>
+    <text x="24" y="92" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">Review movement,</text>
+    <text x="24" y="122" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">pipeline leakage,</text>
+    <text x="24" y="152" font-family="Inter, Arial, sans-serif" font-size="18" fill="#444">and pilot proof.</text>
+    <text x="24" y="205" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#111">Owner: CEO</text>
+  </g>
+
+  <g stroke="#111" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M350 335 H380"/>
+    <path d="M380 335 l-12 -9 M380 335 l-12 9"/>
+    <path d="M660 335 H690"/>
+    <path d="M690 335 l-12 -9 M690 335 l-12 9"/>
+    <path d="M970 335 H1000"/>
+    <path d="M1000 335 l-12 -9 M1000 335 l-12 9"/>
+    <path d="M1280 335 H1310"/>
+    <path d="M1310 335 l-12 -9 M1310 335 l-12 9"/>
+  </g>
+
+  <rect x="80" y="560" width="1440" height="210" rx="10" fill="#fff" stroke="#d9d9d6"/>
+  <text x="120" y="620" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" fill="#111">The daily promise</text>
+  <text x="120" y="668" font-family="Inter, Arial, sans-serif" font-size="24" fill="#222">Open the app. Work the highest-priority queue. Review the draft. Contact through the normal channel. Update the status.</text>
+  <text x="120" y="716" font-family="Inter, Arial, sans-serif" font-size="20" fill="#555">No mass send. No black-box automation. The system creates a clear operating rhythm around contacts the team already owns.</text>
+</svg>

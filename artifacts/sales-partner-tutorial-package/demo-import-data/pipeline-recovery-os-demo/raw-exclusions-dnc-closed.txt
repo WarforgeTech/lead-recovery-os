@@ -1,0 +1,9 @@
+Quinn Shah quinn.shah.8@example.com - STOP / do not contact
+Harper Miller (713) 555-1013 - closed with another agent, no follow-up
+Taylor Patel taylor.patel.22@example.com - bad number / invalid contact
+Casey Reed (713) 555-1045 - STOP / do not contact
+Hayden Hughes hayden.hughes.58@example.com - closed with another agent, no follow-up
+Sage Nguyen (713) 555-1076 - bad number / invalid contact
+Harper Miller harper.miller.93@example.com - STOP / do not contact
+Unknown Bad Lead 832-555-9999 - unsubscribe, DNC
+Morgan Example morgan.closed@example.com - funded elsewhere, do not include

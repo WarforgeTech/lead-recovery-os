@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pipeline Recovery OS - Sales Partner Tutorial</title>
+  <style>
+    :root {
+      --ink: #18181b;
+      --muted: #52525b;
+      --soft: #71717a;
+      --line: #d4d4d8;
+      --panel: #ffffff;
+      --wash: #f4f4f5;
+      --dark: #09090b;
+      --good: #047857;
+      --warn: #a16207;
+      --bad: #be123c;
+      --blue: #1d4ed8;
+    }
+
+    * { box-sizing: border-box; }
+    html {
+      background: var(--wash);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body { margin: 0; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 42px 24px 86px; }
+    .hero, .section {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: 0 18px 50px rgb(24 24 27 / 0.06);
+    }
+    .hero { padding: 36px; }
+    .section { margin-top: 28px; padding: 30px; }
+    .eyebrow { color: var(--soft); font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+    h1 { margin: 12px 0 0; max-width: 900px; font-size: 48px; line-height: 1.02; letter-spacing: -0.035em; }
+    h2 { margin: 0 0 14px; font-size: 29px; line-height: 1.16; letter-spacing: -0.025em; }
+    h3 { margin: 0 0 8px; font-size: 18px; line-height: 1.25; }
+    h4 { margin: 0 0 6px; font-size: 15px; line-height: 1.3; color: #27272a; }
+    p { margin: 0; color: var(--muted); line-height: 1.65; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul, ol { margin: 10px 0 0 22px; color: var(--muted); line-height: 1.65; padding: 0; }
+    li { margin: 4px 0; }
+    .lead { margin-top: 18px; max-width: 850px; font-size: 18px; color: #3f3f46; }
+    .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 28px; }
+    .meta { border: 1px solid var(--line); border-radius: 12px; background: #fafafa; padding: 16px; }
+    .meta strong { display: block; margin-bottom: 5px; font-size: 22px; }
+    .meta span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr); gap: 22px; align-items: start; }
+    .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .callout { border-left: 4px solid var(--dark); background: #fafafa; padding: 16px 18px; border-radius: 10px; }
+    .callout.good { border-left-color: var(--good); }
+    .callout.warn { border-left-color: var(--warn); }
+    .callout.bad { border-left-color: var(--bad); }
+    .callout.blue { border-left-color: var(--blue); }
+    .callout p, .callout li { font-size: 14px; }
+    .steps { counter-reset: step; display: grid; gap: 14px; }
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fff;
+      padding: 18px 18px 18px 58px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: var(--dark);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .step small { display: block; color: var(--soft); margin-top: 6px; line-height: 1.55; }
+    .script { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 14px; padding: 18px; }
+    .script p { color: #312e81; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+    code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 6px; color: #27272a; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 14px;
+      padding: 16px;
+      line-height: 1.55;
+      overflow: auto;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 10px; text-align: left; vertical-align: top; }
+    th { color: #27272a; background: #fafafa; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+    td { color: var(--muted); line-height: 1.5; }
+    .pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 800; color: #27272a; background: #fff; }
+    figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; break-inside: avoid; }
+    figure img { display: block; width: 100%; height: auto; border-bottom: 1px solid var(--line); }
+    .compact-shot { max-width: 860px; margin-top: 18px; }
+    figcaption { padding: 10px 12px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .checklist { display: grid; gap: 10px; margin-top: 14px; }
+    .check { display: grid; grid-template-columns: 26px 1fr; gap: 10px; align-items: start; border: 1px solid #e4e4e7; border-radius: 12px; padding: 12px; background: #fff; }
+    .box { width: 18px; height: 18px; border: 2px solid #a1a1aa; border-radius: 4px; margin-top: 3px; }
+    .footer { color: var(--soft); font-size: 13px; margin-top: 24px; text-align: center; }
+
+    @media (max-width: 860px) {
+      h1 { font-size: 34px; }
+      .meta-grid, .three, .two { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      html { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .hero, .section, .step, figure, .callout { box-shadow: none; break-inside: avoid; }
+      a { color: #000; text-decoration: none; }
+      pre { white-space: pre-wrap; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">Sales partner training guide</div>
+      <h1>How to use Pipeline Recovery OS with the demo import files</h1>
+      <p class="lead">
+        This document teaches a salesperson how to create a test account, upload the same scattered demo files, watch the production system clean them, and understand the daily follow-up workflow well enough to explain it to a prospect.
+      </p>
+      <div class="meta-grid">
+        <div class="meta"><strong>6</strong><span>Demo files to upload in a specific order.</span></div>
+        <div class="meta"><strong>100</strong><span>Initial scattered synthetic records across CRM, Facebook, text notes, and seller notes.</span></div>
+        <div class="meta"><strong>35</strong><span>Second import with duplicate journey updates and new records.</span></div>
+        <div class="meta"><strong>78</strong><span>Active contacts after suppression and merge in the passing production QA run.</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>What this software is for</h2>
+      <div class="two">
+        <div>
+          <p>
+            Pipeline Recovery OS is for sales teams that already have leads, but those leads are scattered across old CRM exports, spreadsheets, Facebook messages, text notes, open-house forms, referral lists, and memory.
+          </p>
+          <p style="margin-top: 12px;">
+            The simple idea: if a person once raised their hand, asked about buying, selling, borrowing, refinancing, or getting help, they should not disappear forever just because the team got busy.
+          </p>
+        </div>
+        <div class="callout blue">
+          <h3>Simple analogy</h3>
+          <p>
+            Think of the product like a lost-and-found desk for sales leads. The customer brings a messy box of old notes, spreadsheets, and names. The system sorts the box into piles: safe to follow up, needs review, do not contact, duplicate, and updated history.
+          </p>
+        </div>
+      </div>
+
+      <div class="three" style="margin-top: 18px;">
+        <div class="callout good">
+          <h3>It finds recoverable people</h3>
+          <p>Old buyers, old sellers, borrowers who never finished an application, past clients, referral partners, and dead deals that might be alive again.</p>
+        </div>
+        <div class="callout good">
+          <h3>It creates a daily queue</h3>
+          <p>The user does not stare at a spreadsheet. They open Today's Follow-Up Queue and work the list in order.</p>
+        </div>
+        <div class="callout warn">
+          <h3>It does not mass-send</h3>
+          <p>V1 creates drafts and queues. A human still reviews, copies, sends, and records what happened.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>The sales problem in plain English</h2>
+      <p>
+        A loan officer, real estate agent, broker, or local sales rep may be very good at selling when they are actually talking to someone. The leak happens before that. Leads arrive from many channels, a few messages happen, and then the person disappears from attention.
+      </p>
+      <table style="margin-top: 16px;">
+        <thead>
+          <tr>
+            <th>What happens in real life</th>
+            <th>Why money gets lost</th>
+            <th>How Pipeline Recovery OS helps</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A Facebook lead asks a question and gets one reply.</td>
+            <td>If they do not answer fast, the team forgets them.</td>
+            <td>The lead comes back into a follow-up cadence instead of disappearing.</td>
+          </tr>
+          <tr>
+            <td>A borrower gets an application link but never completes it.</td>
+            <td>The loan officer may not remember to follow up after 14 days.</td>
+            <td>The system flags "application sent, not started" or "application started, not submitted."</td>
+          </tr>
+          <tr>
+            <td>A buyer or seller was not ready three months ago.</td>
+            <td>They may be ready now, but nobody checks back.</td>
+            <td>The system creates a human-approved re-entry message.</td>
+          </tr>
+          <tr>
+            <td>Someone closed, opted out, or should not be contacted.</td>
+            <td>Messaging them creates trust and compliance risk.</td>
+            <td>Exclusion files scrub those people before they enter the work queue.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Production app and demo files</h2>
+      <div class="two">
+        <div class="callout good">
+          <h3>Use the production app</h3>
+          <p>Open this URL in a browser:</p>
+          <pre>https://lead-recovery-os.vercel.app</pre>
+          <p>For a new test account, go straight to:</p>
+          <pre>https://lead-recovery-os.vercel.app/signup</pre>
+        </div>
+        <div class="callout warn">
+          <h3>Use synthetic demo data only</h3>
+          <p>
+            The files in this tutorial are fake and safe for practice. Do not upload a real prospect's customer data unless Mark has explicitly approved that account and use case.
+          </p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 22px;">Demo data folder</h3>
+      <p>Use this folder when practicing:</p>
+      <pre>/Users/warforge/Projects/lead-recovery-os/demo-import-data/pipeline-recovery-os-demo</pre>
+      <p style="margin-top: 10px;">If this is sent as a zip package, keep the folder structure intact so the files stay easy to find.</p>
+    </section>
+
+    <section class="section">
+      <h2>What each demo file represents</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>What it pretends to be</th>
+            <th>Import type to select</th>
+            <th>Why it matters in the pitch</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/raw-exclusions-dnc-closed.txt">raw-exclusions-dnc-closed.txt</a></td>
+            <td>A messy list of people who should not be contacted: opt-outs, closed files, bad contacts, or no-follow-up records.</td>
+            <td><span class="pill">Do-not-contact</span></td>
+            <td>This proves the system can scrub risky records before creating any outreach queue.</td>
+          </tr>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/crm-export-40.csv">crm-export-40.csv</a></td>
+            <td>An old CRM export with buyers, borrowers, statuses, dates, sources, and notes.</td>
+            <td><span class="pill">Inactive leads</span></td>
+            <td>This is the normal "old database" import most prospects will understand.</td>
+          </tr>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/facebook-open-house-30.csv">facebook-open-house-30.csv</a></td>
+            <td>Leads from Facebook and open-house activity.</td>
+            <td><span class="pill">Inactive leads</span></td>
+            <td>This shows the system can handle leads outside the main CRM.</td>
+          </tr>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/text-message-notes-20.txt">text-message-notes-20.txt</a></td>
+            <td>Messy copied notes that resemble text-message history.</td>
+            <td><span class="pill">Inactive leads</span></td>
+            <td>This shows the system is not limited to clean spreadsheets.</td>
+          </tr>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/seller-valuation-notes-10.txt">seller-valuation-notes-10.txt</a></td>
+            <td>Loose notes from homeowners who asked about value or selling.</td>
+            <td><span class="pill">Inactive leads</span></td>
+            <td>This shows the real estate use case in addition to mortgage.</td>
+          </tr>
+          <tr>
+            <td><a href="../demo-import-data/pipeline-recovery-os-demo/journey-update-import-35.csv">journey-update-import-35.csv</a></td>
+            <td>A later import with duplicate people, new touchpoints, and some new leads.</td>
+            <td><span class="pill">Inactive leads</span></td>
+            <td>This proves repeat imports can merge into existing journeys instead of creating duplicates.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Step-by-step account setup</h2>
+      <div class="steps">
+        <div class="step">
+          <h3>Open the signup page</h3>
+          <p>Go to <a href="https://lead-recovery-os.vercel.app/signup">https://lead-recovery-os.vercel.app/signup</a>.</p>
+          <small>You should see a page titled <strong>Start your recovery queue</strong>.</small>
+        </div>
+        <div class="step">
+          <h3>Enter an email address</h3>
+          <p>Use an email inbox you can access. The app does not use passwords. It sends a secure magic link.</p>
+          <small>If you are practicing for sales, use your own email or a dedicated demo email.</small>
+        </div>
+        <div class="step">
+          <h3>Open the magic link</h3>
+          <p>Check your email. Click the secure login link. It should return you to the app.</p>
+          <small>If you are recording a video, pause while opening email so private inbox content is not shown.</small>
+        </div>
+        <div class="step">
+          <h3>Fill out workspace setup</h3>
+          <p>Use these values for practice:</p>
+          <pre>Workspace name: Demo Mortgage Recovery Team
+Business type: Mortgage growth
+Your role: Broker / team lead
+Market / location: Houston, TX</pre>
+        </div>
+        <div class="step">
+          <h3>Click Continue to import</h3>
+          <p>This creates the workspace and takes you to the first import screen.</p>
+        </div>
+      </div>
+      <figure class="compact-shot">
+        <img src="./assets/sales-partner-workspace-setup.png" alt="Workspace setup screen" />
+        <figcaption>Visual checkpoint: the workspace setup screen after login. Select "Mortgage growth" for the mortgage sales demo.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section">
+      <h2>Step-by-step import flow</h2>
+      <p>
+        You will repeat the same basic import process several times. The first file is the exclusion file. The rest are lead files.
+      </p>
+      <div class="steps" style="margin-top: 16px;">
+        <div class="step">
+          <h3>Go to Import leads</h3>
+          <p>After workspace setup, the app should take you to the import page. Later, you can also use the left navigation and click <strong>Imports</strong>, then start a new import.</p>
+        </div>
+        <div class="step">
+          <h3>Choose what you are importing</h3>
+          <p>For the first file, select <strong>Do-not-contact</strong>. For the rest, select <strong>Inactive leads</strong>.</p>
+        </div>
+        <div class="step">
+          <h3>Keep Upload file selected</h3>
+          <p>Use <strong>Upload file</strong> for the CSV and TXT demo files.</p>
+          <small>The app also supports pasted text, but files are easier for this practice run.</small>
+        </div>
+        <div class="step">
+          <h3>Click Drop in a lead file and choose the file</h3>
+          <p>Select the correct file from the demo data folder.</p>
+        </div>
+        <div class="step">
+          <h3>Click Clean and review leads</h3>
+          <p>This starts the production import job.</p>
+          <small>The browser is not doing the heavy work. The Vercel app creates the job; the Railway worker parses and cleans the file; Supabase stores progress.</small>
+        </div>
+        <div class="step">
+          <h3>Wait on Cleaning your lead file</h3>
+          <p>Watch the progress screen. It moves through phases like reading, parsing, normalizing, deduping, scrubbing exclusions, and preparing review.</p>
+        </div>
+        <div class="step">
+          <h3>Review the cleaned import</h3>
+          <p>You will see three buckets: <strong>Ready to work</strong>, <strong>Needs review</strong>, and <strong>Suppressed</strong>.</p>
+        </div>
+        <div class="step">
+          <h3>Click Accept import and start work</h3>
+          <p>This commits safe, ready rows into the workspace queue. Suppressed and problem rows do not become outreach items.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Recommended upload order</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>File</th>
+            <th>What to select</th>
+            <th>What you should notice</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><code>raw-exclusions-dnc-closed.txt</code></td>
+            <td>Do-not-contact</td>
+            <td>Everything should be suppressed. This builds the scrub list.</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><code>crm-export-40.csv</code></td>
+            <td>Inactive leads</td>
+            <td>Some records become ready, and some match the exclusion list and are suppressed.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><code>facebook-open-house-30.csv</code></td>
+            <td>Inactive leads</td>
+            <td>The app handles a different source without needing a CRM integration.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><code>text-message-notes-20.txt</code></td>
+            <td>Inactive leads</td>
+            <td>Messy notes can still turn into structured queue items.</td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><code>seller-valuation-notes-10.txt</code></td>
+            <td>Inactive leads</td>
+            <td>Seller/realtor-style notes work too.</td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td><code>journey-update-import-35.csv</code></td>
+            <td>Inactive leads</td>
+            <td>Duplicate people should merge into existing journeys instead of creating duplicate contacts.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>What the review buckets mean</h2>
+      <p>
+        Every import pauses on this review screen. This is the safety gate. The user checks the buckets first, then accepts only the clean import results into the working queue.
+      </p>
+      <figure class="compact-shot" style="margin-bottom: 18px;">
+        <img src="./assets/sales-partner-import-review.png" alt="Review screen for CRM import" />
+        <figcaption>Visual checkpoint: the review screen separates ready records from suppressed or unsafe records before the daily queue is created.</figcaption>
+      </figure>
+      <div class="three">
+        <div class="callout good">
+          <h3>Ready to work</h3>
+          <p>These records have enough contact information and are safe enough to become active follow-up items after you accept.</p>
+        </div>
+        <div class="callout warn">
+          <h3>Needs review</h3>
+          <p>These are not safe to queue automatically. Maybe the contact info is missing, consent is unclear, or the status is too ambiguous.</p>
+        </div>
+        <div class="callout bad">
+          <h3>Suppressed</h3>
+          <p>These are held out because they are do-not-contact, opted out, closed, bad contact, duplicate, or otherwise unsafe to message.</p>
+        </div>
+      </div>
+      <div class="callout blue" style="margin-top: 18px;">
+        <h3>Plain-English sales explanation</h3>
+        <p>
+          "The system does not blindly dump every row into the queue. It stages the import first. The customer gets to see what is safe, what needs human review, and what should never be contacted."
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>After importing: how to use Today's Follow-Up Queue</h2>
+      <p>
+        After you accept the imports, go to <strong>Today</strong> or <strong>Dashboard</strong>. The main page is called <strong>Today's Follow-Up Queue</strong>. This is the daily workbench.
+      </p>
+      <figure class="compact-shot">
+        <img src="./assets/sales-partner-today-queue.png" alt="Today's Follow-Up Queue after imports" />
+        <figcaption>Visual checkpoint: this is the main daily workbench after the demo files have been accepted.</figcaption>
+      </figure>
+      <div class="steps" style="margin-top: 16px;">
+        <div class="step">
+          <h3>Look at the summary cards</h3>
+          <p>The top cards show how much work is due today, hot leads at risk, application follow-ups, and replies or appointments.</p>
+        </div>
+        <div class="step">
+          <h3>Use the filters</h3>
+          <p>Filters help the user focus: application follow-ups, docs stuck, past declined/dead deal, referral/past client, and needs Adam.</p>
+        </div>
+        <div class="step">
+          <h3>Open or read a lead card</h3>
+          <p>Each card shows the person, source, stage, owner, last contact date, why they are in the queue, next step, and a draft message.</p>
+        </div>
+        <div class="step">
+          <h3>Copy the suggested message</h3>
+          <p>Click <strong>Copy message</strong>, then paste it wherever the salesperson actually communicates: email, SMS, CRM, Facebook, or another system.</p>
+          <small>V1 does not send messages directly. This is intentional and safer for early pilots.</small>
+        </div>
+        <div class="step">
+          <h3>Record what happened</h3>
+          <p>After outreach, click the outcome button that matches reality: Outreach done, No reply, They replied, App submitted, Call booked, Escalate to Adam, Follow up in 3 days, Pause 14 days, or Opt out / DNC.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>What each outcome button means</h2>
+      <p>
+        Outcome buttons are how the user updates the system without manually editing a CRM record. After they copy and send a message in their normal channel, they click the button that matches what happened.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Button</th>
+            <th>Use it when</th>
+            <th>What it does</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Copy message</td>
+            <td>You want to use the suggested draft in email, SMS, Facebook, or another tool.</td>
+            <td>Copies the text. It does not send anything.</td>
+          </tr>
+          <tr>
+            <td>Outreach done</td>
+            <td>You called, texted, emailed, or otherwise reached out.</td>
+            <td>Records a touch and schedules the next follow-up.</td>
+          </tr>
+          <tr>
+            <td>No reply</td>
+            <td>You reached out and nobody answered.</td>
+            <td>Moves the person to the next cadence step so they come back later.</td>
+          </tr>
+          <tr>
+            <td>They replied</td>
+            <td>The person responded.</td>
+            <td>Stops the no-response cadence and keeps the opportunity active.</td>
+          </tr>
+          <tr>
+            <td>App submitted</td>
+            <td>A borrower completed the application.</td>
+            <td>Moves them out of recovery follow-up and into the active process.</td>
+          </tr>
+          <tr>
+            <td>Call booked</td>
+            <td>A consult, review call, or appointment is scheduled.</td>
+            <td>Marks a real recovered conversation.</td>
+          </tr>
+          <tr>
+            <td>Escalate to Adam</td>
+            <td>The assistant cannot resolve it and the loan officer needs to personally handle the lead.</td>
+            <td>Flags it for Adam or the primary salesperson.</td>
+          </tr>
+          <tr>
+            <td>Follow up in 3 days</td>
+            <td>The timing is not right today, but it should come back soon.</td>
+            <td>Snoozes the lead for three days.</td>
+          </tr>
+          <tr>
+            <td>Pause 14 days</td>
+            <td>The person is not ready, but should not be thrown away.</td>
+            <td>Moves the next due date out two weeks.</td>
+          </tr>
+          <tr>
+            <td>Opt out / DNC</td>
+            <td>They opted out, consent is bad, or they should not be contacted.</td>
+            <td>Suppresses the person from future outreach queues.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>End-of-day update box</h2>
+      <p>
+        The end-of-day box is for people who do not want to click through every contact one at a time. They can type a messy recap, and the system tries to match names to known contacts and update outcomes.
+      </p>
+      <div class="script" style="margin-top: 16px;">
+        <p>
+          Example to paste: "Drew Foster did not respond after I sent the app link. Jordan Irwin needs Adam to call tomorrow. Skyler Lopez booked a call for Monday. Unknown Borrower asked about a loan but I cannot match them."
+        </p>
+      </div>
+      <div class="steps" style="margin-top: 16px;">
+        <div class="step">
+          <h3>Find End-of-day update on the dashboard</h3>
+          <p>It appears on the right side of Today's Follow-Up Queue on desktop.</p>
+        </div>
+        <div class="step">
+          <h3>Paste or type a recap</h3>
+          <p>Use normal human language. It does not have to be perfect.</p>
+        </div>
+        <div class="step">
+          <h3>Click Apply updates</h3>
+          <p>The system updates matched contacts and logs anything it cannot match.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>How to explain this during a sales conversation</h2>
+      <div class="script">
+        <p>
+          "Most teams do not have a lead generation problem first. They have a lead leakage problem. People raise their hand, ask a question, get an app link, attend an open house, or talk to the team once, then fall out of memory. Pipeline Recovery OS imports the messy history, scrubs out records that should not be contacted, merges duplicate touchpoints into a single journey, and gives the team a daily list of who to follow up with, why now, and what to say. It is not a mass texting tool. It is a human-approved recovery queue."
+        </p>
+      </div>
+      <div class="three" style="margin-top: 16px;">
+        <div class="callout">
+          <h3>For loan officers</h3>
+          <p>Focus on application links sent but not started, applications started but not submitted, docs stuck, pre-approval declines, and dead files that could be ready later.</p>
+        </div>
+        <div class="callout">
+          <h3>For real estate agents</h3>
+          <p>Focus on old buyers, old sellers, open-house contacts, home value check-ins, past clients, and referral asks.</p>
+        </div>
+        <div class="callout">
+          <h3>For brokers or owners</h3>
+          <p>Focus on visibility: leads worked, replies, appointments, stale leads recovered, assistant productivity, and pipeline leakage.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Practice checklist</h2>
+      <p>Before presenting this to a prospect, run through this checklist at least once.</p>
+      <div class="checklist">
+        <div class="check"><div class="box"></div><p>I can explain what Pipeline Recovery OS does in one sentence.</p></div>
+        <div class="check"><div class="box"></div><p>I created a test account through the production signup flow.</p></div>
+        <div class="check"><div class="box"></div><p>I created a mortgage-growth workspace.</p></div>
+        <div class="check"><div class="box"></div><p>I uploaded the exclusion file first.</p></div>
+        <div class="check"><div class="box"></div><p>I uploaded all five lead/update files after that.</p></div>
+        <div class="check"><div class="box"></div><p>I understand Ready, Needs review, and Suppressed.</p></div>
+        <div class="check"><div class="box"></div><p>I accepted imports and saw Today's Follow-Up Queue populate.</p></div>
+        <div class="check"><div class="box"></div><p>I copied a message and understand that the app does not send messages directly.</p></div>
+        <div class="check"><div class="box"></div><p>I clicked an outcome button and understand how follow-up gets scheduled.</p></div>
+        <div class="check"><div class="box"></div><p>I tested the end-of-day update box.</p></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Common questions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Answer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Does it replace the CRM?</td>
+            <td>No. It is a recovery layer. It helps find and work stale or scattered leads that the CRM workflow failed to keep alive.</td>
+          </tr>
+          <tr>
+            <td>Does it send texts or emails?</td>
+            <td>No, not in v1. It creates human-approved drafts and a work queue. The user copies the message into their normal channel.</td>
+          </tr>
+          <tr>
+            <td>What happens to people who should not be contacted?</td>
+            <td>They are suppressed and kept out of drafts and queues.</td>
+          </tr>
+          <tr>
+            <td>What if the same person appears in multiple files?</td>
+            <td>The system tries to merge the journey instead of creating duplicate contacts.</td>
+          </tr>
+          <tr>
+            <td>What if data is messy?</td>
+            <td>That is the point. The worker handles CSV, TXT, pasted notes, and other common messy formats. Ambiguous rows can be staged for review.</td>
+          </tr>
+          <tr>
+            <td>Why does the import take time?</td>
+            <td>It is reading, parsing, normalizing, deduping, scrubbing exclusions, reconstructing journeys, and preparing a review queue.</td>
+          </tr>
+          <tr>
+            <td>What should the user do every day?</td>
+            <td>Open Today's Follow-Up Queue, work the top leads, copy/send messages manually, click outcome buttons, and optionally paste an end-of-day recap.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Technical proof points, without getting too technical</h2>
+      <div class="three">
+        <div class="callout blue">
+          <h3>Vercel</h3>
+          <p>The customer-facing app, signup flow, dashboard, imports UI, and review screens run on Vercel.</p>
+        </div>
+        <div class="callout blue">
+          <h3>Railway</h3>
+          <p>The heavy import worker runs in a Railway production container so large, messy files do not block the web app.</p>
+        </div>
+        <div class="callout blue">
+          <h3>Supabase</h3>
+          <p>Auth, workspaces, import status, contacts, opportunities, and activity history live in Supabase.</p>
+        </div>
+      </div>
+      <p style="margin-top: 16px;">
+        Latest production QA proof: <a href="../qa/reports/selfserve-20260604180139/REPORT.md">qa/reports/selfserve-20260604180139/REPORT.md</a>
+      </p>
+    </section>
+
+    <p class="footer">Pipeline Recovery OS sales partner tutorial. Synthetic data only. ROI and recovery outcomes are directional, not guaranteed.</p>
+  </main>
+</body>
+</html>

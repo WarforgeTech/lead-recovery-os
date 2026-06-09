@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pipeline Recovery OS - Architecture and Interview Brief</title>
+  <style>
+    :root {
+      --ink: #18181b;
+      --muted: #52525b;
+      --soft: #71717a;
+      --line: #d4d4d8;
+      --panel: #ffffff;
+      --wash: #f4f4f5;
+      --dark: #09090b;
+      --blue: #1d4ed8;
+      --green: #047857;
+      --amber: #a16207;
+      --rose: #be123c;
+      --violet: #5b21b6;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--wash); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; }
+    .page { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+    .hero {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 34px;
+      box-shadow: 0 18px 50px rgb(24 24 27 / 0.06);
+    }
+    .eyebrow { color: var(--soft); font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+    h1 { margin: 12px 0 0; font-size: 46px; line-height: 1.02; letter-spacing: -0.035em; }
+    h2 { margin: 0 0 14px; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; }
+    h3 { margin: 0 0 10px; font-size: 18px; line-height: 1.25; }
+    p { margin: 0; color: var(--muted); line-height: 1.65; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .lead { margin-top: 18px; max-width: 860px; font-size: 18px; color: #3f3f46; }
+    .section { margin-top: 28px; border: 1px solid var(--line); background: var(--panel); border-radius: 16px; padding: 28px; }
+    .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 26px; }
+    .card { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 18px; }
+    .card strong { display: block; font-size: 22px; margin-bottom: 6px; }
+    .card span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .callout { border-left: 4px solid var(--dark); background: #fafafa; padding: 16px 18px; border-radius: 10px; }
+    .callout.green { border-left-color: var(--green); }
+    .callout.amber { border-left-color: var(--amber); }
+    .callout.rose { border-left-color: var(--rose); }
+    .callout.violet { border-left-color: var(--violet); }
+    .callout p { font-size: 14px; }
+    .stack { display: grid; gap: 12px; }
+    .flow { display: grid; gap: 10px; }
+    .flow-row {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 14px;
+      align-items: start;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+    .lane { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #27272a; }
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .node {
+      position: relative;
+      min-height: 128px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fff;
+    }
+    .node::after {
+      content: "";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      width: 18px;
+      height: 2px;
+      background: #a1a1aa;
+    }
+    .node:last-child::after { display: none; }
+    .node h3 { font-size: 16px; }
+    .node p { font-size: 13px; }
+    .tag { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; color: #27272a; background: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 10px; text-align: left; vertical-align: top; }
+    th { color: #27272a; background: #fafafa; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+    td { color: var(--muted); line-height: 1.5; }
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+    code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 6px; color: #27272a; }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #111827;
+      color: #f9fafb;
+      border-radius: 14px;
+      padding: 16px;
+      line-height: 1.55;
+      overflow: auto;
+    }
+    .script {
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .script p { color: #312e81; }
+    .footer { color: var(--soft); font-size: 13px; margin-top: 24px; text-align: center; }
+
+    @media (max-width: 940px) {
+      h1 { font-size: 34px; }
+      .grid-2, .grid-3, .grid-4, .diagram { grid-template-columns: 1fr; }
+      .flow-row { grid-template-columns: 1fr; }
+      .node::after { display: none; }
+    }
+
+    @media print {
+      html { background: #fff; }
+      .page { max-width: none; padding: 0; }
+      .section, .hero, .card, .node, .callout { break-inside: avoid; box-shadow: none; }
+      a { color: #000; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">Architecture and interview brief</div>
+      <h1>Pipeline Recovery OS</h1>
+      <p class="lead">
+        A self-serve lead recovery product for agents, loan officers, brokers, and local sales teams. It imports messy inactive lead data, scrubs unsafe records, reconstructs lead journeys, and turns recoverable people into a human-approved daily follow-up queue.
+      </p>
+      <div class="grid-4">
+        <div class="card"><strong>Next.js 16</strong><span>App Router, Server Components, Server Actions, Route Handlers, streaming, and Vercel deployment.</span></div>
+        <div class="card"><strong>Vercel Workflows</strong><span>Durable, step-based file ingestion on Fluid Compute. Survives disconnects, refreshes, and restarts — no separate worker service.</span></div>
+        <div class="card"><strong>Supabase</strong><span>Postgres source of truth: tenancy + RLS, import job/progress state, staged rows, contacts, opportunities, suppression.</span></div>
+        <div class="card"><strong>AI SDK + Gateway · Blob</strong><span>Claude Sonnet journey reconstruction with deterministic fallback; private Vercel Blob raw-file archive.</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Problem framing</h2>
+      <div class="grid-3">
+        <div class="callout">
+          <h3>Audience</h3>
+          <p>Loan officers, mortgage brokerages, real estate teams, and other relationship-driven local sales teams with stale lead data.</p>
+        </div>
+        <div class="callout">
+          <h3>Why this matters</h3>
+          <p>Teams already paid for or earned these relationships. The leakage happens after referral, application link, partial application, declined file, or dead deal.</p>
+        </div>
+        <div class="callout">
+          <h3>Picture of success</h3>
+          <p>A non-technical assistant can import messy data, accept a cleaned review, and work a focused daily queue without manually maintaining another CRM.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>15-minute customer-style demo arc</h2>
+      <div class="flow">
+        <div class="flow-row">
+          <div class="lane">0 to 3 minutes</div>
+          <p><strong>Business context:</strong> "You have leads from texts, Facebook, CRM exports, open houses, and old loan files. The problem is not sales skill. The problem is follow-up memory and process leakage."</p>
+        </div>
+        <div class="flow-row">
+          <div class="lane">3 to 7 minutes</div>
+          <p><strong>Import demo:</strong> create a workspace, load exclusions, upload scattered CSV/TXT files, show progress phases, review rows, and accept the import.</p>
+        </div>
+        <div class="flow-row">
+          <div class="lane">7 to 11 minutes</div>
+          <p><strong>Daily workbench:</strong> show Today's Follow-Up Queue, a lead work card, suggested message, outcome buttons, and the end-of-day update box.</p>
+        </div>
+        <div class="flow-row">
+          <div class="lane">11 to 15 minutes</div>
+          <p><strong>Technical architecture:</strong> show the durable Vercel Workflow processing an import (and surviving a tab close), explain the rendering/caching choices behind sub-second navigation, Supabase for state and tenancy, Blob for private archive, and the AI step with deterministic fallback.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>System architecture</h2>
+      <p>The app keeps fast customer-facing product surfaces and slow, messy ingestion on one platform, separated by execution model rather than by vendor. Ingestion is a durable Vercel Workflow, not a request-response route.</p>
+      <div class="diagram">
+        <div class="node">
+          <h3>User browser</h3>
+          <p>Email sign-in, upload, live progress, review, Today queue, outcomes, reports. Streams a shell instantly via <code>loading.tsx</code>.</p>
+        </div>
+        <div class="node">
+          <h3>Vercel Next.js</h3>
+          <p>Route handler archives the upload, creates the job, and triggers the Workflow with <code>start()</code>. Server Actions commit accepted rows.</p>
+        </div>
+        <div class="node">
+          <h3>Vercel Workflow</h3>
+          <p>Durable steps on Fluid Compute: parse → normalize → dedupe → suppress → AI reconstruct → stage. Independently retried; resumable.</p>
+        </div>
+        <div class="node">
+          <h3>Supabase</h3>
+          <p>Source of truth: tenancy + RLS, job/progress state, staged <code>import_rows</code>, canonical contacts, opportunities, suppression.</p>
+        </div>
+      </div>
+      <div class="callout green" style="margin-top:16px;">
+        <h3>Why a Workflow, not a function or a separate worker</h3>
+        <p>Ingestion is long-running and stateful: parse, dedupe, per-group AI reconstruction, and staging. A single request-response function risks the wall-clock timeout and restarts from zero on any failure. Vercel Workflows give durable, step-level execution — each step is independently retried and the run survives deploys, instance restarts, and client disconnects. Progress lives in Postgres, so the browser can close and reopen mid-import and resume against live state. This is the assessment's "leverage Workflows for stateful applications" and "persist state through disconnections" made concrete.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Production deployment</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Vercel app + workflow</h3>
+          <p><a href="https://lead-recovery-os.vercel.app">https://lead-recovery-os.vercel.app</a></p>
+          <p style="margin-top: 8px;">Project: <code>lead-recovery-os</code>. The app and the durable import Workflow deploy together — one project, no separate service.</p>
+        </div>
+        <div class="card">
+          <h3>Supabase</h3>
+          <p>Source of truth: auth, RLS, import job/progress state, staged rows, canonical contacts, opportunities, and suppression records.</p>
+        </div>
+        <div class="card">
+          <h3>Vercel Blob</h3>
+          <p>Private raw-file archive for audit and reprocessing, with a Supabase Storage fallback when Blob is not configured.</p>
+        </div>
+      </div>
+      <p style="margin-top: 16px;">The production proof path is a live import: Vercel archives the file, creates a Supabase job, and triggers the Workflow with <code>start()</code>; the workflow's steps advance progress in Postgres while the browser polls; the user then accepts staged rows into the Today queue. Closing the tab mid-import and reopening it resumes against live progress — nothing is lost.</p>
+    </section>
+
+    <section class="section">
+      <h2>Data flow</h2>
+      <div class="flow">
+        <div class="flow-row"><div class="lane">1. Signup</div><p>User signs up passwordlessly through Supabase Auth and creates a workspace. The workspace chooses a pipeline template such as <code>mortgage_growth</code>.</p></div>
+        <div class="flow-row"><div class="lane">2. Upload</div><p>Next.js receives a file or pasted text from <code>/imports/new</code> through <code>/api/imports</code>.</p></div>
+        <div class="flow-row"><div class="lane">3. Archive</div><p>The raw input is stored privately in Vercel Blob when configured, with fallback metadata if Blob credentials are unavailable locally.</p></div>
+        <div class="flow-row"><div class="lane">4. Trigger workflow</div><p>Next.js creates <code>imports</code> and <code>import_jobs</code> rows, then triggers the durable Workflow with <code>start()</code>. The call returns immediately; the browser moves to the processing screen.</p></div>
+        <div class="flow-row"><div class="lane">5. Parse step</div><p>The first Workflow step downloads the archived file and parses CSV, TSV, XLSX, TXT, JSON, VCF, DOCX, and text-based PDF (via <code>unpdf</code>). Legacy binary XLS is intentionally rejected with guidance to export as XLSX/CSV/TSV.</p></div>
+        <div class="flow-row"><div class="lane">6. Normalize</div><p>Names, phones, emails, notes, consent status, sources, dates, and lead stages are normalized.</p></div>
+        <div class="flow-row"><div class="lane">7. Dedupe</div><p>Email and phone identity keys match existing contacts. Repeated records are grouped into one staged journey.</p></div>
+        <div class="flow-row"><div class="lane">8. Suppress</div><p>DNC, opt-out, closed, funded elsewhere, bad contact, and existing exclusions are held out before drafts are created.</p></div>
+        <div class="flow-row"><div class="lane">9. AI reconstruct</div><p>AI SDK + Vercel AI Gateway reconstruct messy journeys for ambiguous groups. A deterministic fallback runs when AI is not configured or fails — the eval suite enforces the same stage/hallucination contract on both paths.</p></div>
+        <div class="flow-row"><div class="lane">10. Stage + progress</div><p>The step writes staged <code>import_rows</code> and advances <code>workflow_percent</code> in Supabase throughout. Because progress is persisted, the browser survives refresh, disconnect, and instance restart.</p></div>
+        <div class="flow-row"><div class="lane">11. Review</div><p>The user sees Ready, Needs review, and Suppressed rows. A red banner makes clear nothing is in their queue yet.</p></div>
+        <div class="flow-row"><div class="lane">12. Accept</div><p>The accept Server Action writes contacts, opportunities, drafts, identities, journey events, and exclusions into canonical tables. This is the human commit boundary.</p></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Vercel features used</h2>
+      <table>
+        <thead>
+          <tr><th>Feature</th><th>Where it appears</th><th>Why it is appropriate now</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Next.js App Router</strong></td>
+            <td><code>src/app</code> routes for landing, demo, signup, onboarding, dashboard, imports, leads, reports, and exports.</td>
+            <td>Lets server-render authenticated product surfaces while keeping public demo pages static where possible.</td>
+          </tr>
+          <tr>
+            <td><strong>React Server Components</strong></td>
+            <td>Dashboard, imports, reports, leads, settings.</td>
+            <td>Data-heavy views can query Supabase server-side without shipping unnecessary client code.</td>
+          </tr>
+          <tr>
+            <td><strong>Server Actions</strong></td>
+            <td>Workspace creation, accepting staged imports, outcome buttons, daily dump updates, draft edits.</td>
+            <td>High-leverage form mutations stay close to the UI with simple progressive forms and revalidation.</td>
+          </tr>
+          <tr>
+            <td><strong>Route Handlers</strong></td>
+            <td><code>/api/imports</code>, <code>/api/imports/[id]/status</code>, <code>/api/exports/approved</code>, auth callbacks.</td>
+            <td>They provide bounded API edges for upload, polling, export, and auth.</td>
+          </tr>
+          <tr>
+            <td><strong>Vercel Workflows</strong></td>
+            <td><code>src/workflows/import-workflow.ts</code> (<code>use workflow</code> / <code>use step</code>); triggered by <code>start()</code> in the upload route.</td>
+            <td>Durable, step-based ingestion that survives disconnects and restarts. The headline reason Vercel fits this use case — no separate worker, no wall-clock ceiling, step-level retries.</td>
+          </tr>
+          <tr>
+            <td><strong>Fluid Compute</strong></td>
+            <td>Runtime for the workflow steps (full Node.js parsers: papaparse, read-excel-file, mammoth, unpdf).</td>
+            <td>Full Node with warm instances and a long timeout — heavy file parsing runs without a container.</td>
+          </tr>
+          <tr>
+            <td><strong>Streaming (loading.tsx)</strong></td>
+            <td><code>dashboard</code>, <code>leads</code>, <code>queue</code> loading skeletons; root <code>error.tsx</code> / <code>not-found.tsx</code>.</td>
+            <td>The shell paints instantly while per-user data resolves, improving perceived load and protecting the demo from a blank crash.</td>
+          </tr>
+          <tr>
+            <td><strong>Vercel Blob</strong></td>
+            <td>Private raw import archive through <code>src/lib/import-archive.ts</code>.</td>
+            <td>Stores original files for audit and reprocessing without using Postgres as file storage.</td>
+          </tr>
+          <tr>
+            <td><strong>AI SDK</strong></td>
+            <td>Import journey reconstruction (in the workflow step), daily dump parsing, and draft refinement.</td>
+            <td>Provides one model interface, structured outputs, prompt safety, and consistent fallback behavior.</td>
+          </tr>
+          <tr>
+            <td><strong>Vercel AI Gateway</strong></td>
+            <td>Model routing for <code>anthropic/claude-sonnet-4.6</code> and <code>openai/gpt-5.5</code> paths when configured.</td>
+            <td>Centralizes provider access and model choice while preserving deterministic fallback if not configured.</td>
+          </tr>
+          <tr>
+            <td><strong>Web Analytics and Speed Insights</strong></td>
+            <td>Root layout instrumentation.</td>
+            <td>Useful for public demo traffic and customer-facing performance without third-party analytics complexity.</td>
+          </tr>
+          <tr>
+            <td><strong>OpenTelemetry</strong></td>
+            <td><code>src/instrumentation.ts</code> and <code>src/lib/tracing.ts</code>.</td>
+            <td>Traces workflow events without logging PII such as names, emails, phones, or message text.</td>
+          </tr>
+          <tr>
+            <td><strong>Preview deployments</strong></td>
+            <td>Release workflow, not a code path.</td>
+            <td>Lets product changes be tested against a preview URL before production is promoted.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Why Vercel Workflows for stateful ingestion</h2>
+      <div class="grid-2">
+        <div class="callout amber">
+          <h3>Not every job is a request-response function</h3>
+          <p>Parsing arbitrary customer files, deduping, and per-group AI reconstruction is long-running and multi-phase. A single function risks the wall-clock timeout and restarts from zero on any failure. I considered an external container (Railway) — it's in the git history as the evaluated alternative — but it adds a second platform, a polling loop running 24/7, and its own deploy story.</p>
+        </div>
+        <div class="callout green">
+          <h3>Workflows give durability without a second platform</h3>
+          <p>The Workflow DevKit runs each phase as an independently retried <code>use step</code> on Fluid Compute, orchestrated by a <code>use workflow</code> function. Runs survive deploys, instance restarts, and client disconnects. One project, one deploy, native observability — and the "when not to use a plain function" judgment the role asks for.</p>
+        </div>
+      </div>
+      <p style="margin-top: 16px;">The key design choice is that the workflow never writes active contacts directly — it only stages rows in <code>import_rows</code>. The Vercel app commits accepted rows after human review. State of record stays in Supabase (queryable, RLS-protected, drives the review UI), not in workflow storage. <strong>Scale path:</strong> for very large files the per-group AI loop becomes batched sub-steps for finer retry granularity, and Vercel Queues can buffer bursts ahead of the workflow.</p>
+    </section>
+
+    <section class="section">
+      <h2>Rendering &amp; performance (Track A)</h2>
+      <p>The authenticated surfaces are genuinely per-user, per-organization, real-time data — there is no shared, cacheable shell to prerender, so the win is not caching this data (on serverless, in-memory <code>use cache</code> doesn't persist across requests anyway). The win is <strong>removing redundant round-trips and streaming the shell</strong>. Honest rendering choices beat cargo-culted caching.</p>
+      <div class="grid-2" style="margin-top:16px;">
+        <div class="callout rose">
+          <h3>Before</h3>
+          <p>Clicking an outcome button took 2–3s. Each navigation made two Supabase <code>auth.getUser()</code> network calls (middleware + page) and ran a duplicate membership query, all serial and uncached, then repeated after every mutation.</p>
+        </div>
+        <div class="callout green">
+          <h3>After (sub-second)</h3>
+          <p>Sessions verify locally with <code>getClaims()</code> (cached JWKS) instead of an Auth-server round-trip; the middleware matcher excludes API and asset paths; <code>React.cache()</code> dedupes per-render queries; and <code>loading.tsx</code> streams the shell instantly.</p>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-top:16px;">
+        <div class="card">
+          <h3>Static vs dynamic</h3>
+          <span>Marketing, login, and signup are static and CDN-cached. App routes are dynamic by necessity (per-user data) — used deliberately, not by default.</span>
+        </div>
+        <div class="card">
+          <h3>Core Web Vitals</h3>
+          <span>Streaming a skeleton improves perceived LCP; eliminating the auth waterfall improves INP on every interaction; stable skeleton geometry avoids layout shift (CLS).</span>
+        </div>
+        <div class="card">
+          <h3>Cost</h3>
+          <span>Fewer Auth-server calls and deduped queries mean fewer function invocations and less Active CPU per navigation — performance and cost move together.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>AI design</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>Prompting</h3>
+          <p>The import prompt only sees normalized lead data and raw source rows for that grouped person. It is instructed not to invent names, dates, outcomes, or recommendations for suppressed records.</p>
+        </div>
+        <div class="card">
+          <h3>Context selection</h3>
+          <p>The system parses and dedupes first. AI is reserved for duplicate groups, long notes, Facebook/iMessage-style text, and ambiguous journey summaries.</p>
+        </div>
+        <div class="card">
+          <h3>Fallback behavior</h3>
+          <p>If <code>AI_GATEWAY_API_KEY</code> is missing or the model fails, the workflow step uses deterministic reconstruction. Imports continue with lower confidence rather than failing the user.</p>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 18px;">
+        <div class="callout violet">
+          <h3>Model choice</h3>
+          <p><code>anthropic/claude-sonnet-4.6</code> is used for messy import journey reconstruction because the task is language-heavy and benefits from stronger reasoning. The app keeps token cost controlled by preprocessing before AI.</p>
+        </div>
+        <div class="callout">
+          <h3>Cost and latency trade-off</h3>
+          <p>Simple rows do not need model calls. AI is selective, bounded by row grouping and note length. The browser sees progress from Supabase while the workflow processes asynchronously.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Lightweight evaluation approach</h2>
+      <p>The project includes a small but defensible regression set rather than a large, murky eval suite.</p>
+      <div class="grid-3" style="margin-top: 16px;">
+        <div class="callout green">
+          <h3>Parser fixtures</h3>
+          <p><code>evals/fixtures/</code> verifies CSV, repeat import, suppression, JSON, VCF, and messy notes parsing against the live <code>src/lib/import-pipeline</code> modules.</p>
+        </div>
+        <div class="callout green">
+          <h3>AI journey regression</h3>
+          <p><code>evals/import-journey-regression.json</code> verifies stage classification, preserved context, and no invented outcomes — a hallucination guard on the AI step's fallback contract.</p>
+        </div>
+        <div class="callout green">
+          <h3>Human E2E QA</h3>
+          <p><code>qa/self-serve-import-flow.mjs</code> creates a fresh user, imports demo files, accepts rows, tests outcome buttons and the daily dump, and verifies persistence.</p>
+        </div>
+      </div>
+      <p style="margin-top:14px;">One command runs both eval checks against the same code the production workflow uses, so the eval and the pipeline can't drift. It prints a readable PASS/FAIL table and exits non-zero on failure, so it can gate CI.</p>
+      <pre>npm run eval            # parser fixtures + journey/hallucination regression
+npm run eval:parsers    # format coverage only
+npm run eval:ai         # journey / hallucination regression only
+
+npm run lint &amp;&amp; npm run build
+APP_URL=https://lead-recovery-os.vercel.app npm run qa:selfserve-import</pre>
+    </section>
+
+    <section class="section">
+      <h2>Security, privacy, and reliability</h2>
+      <div class="grid-3">
+        <div class="callout green">
+          <h3>Tenant isolation</h3>
+          <p>Supabase RLS ensures users only see organizations where they are members. Service-role writes are limited to server-side route handlers, Server Actions, and workflow steps.</p>
+        </div>
+        <div class="callout green">
+          <h3>No outbound sending</h3>
+          <p>V1 generates drafts and exports queues. It does not send SMS, email, iMessage, Facebook messages, or referral-compensation language.</p>
+        </div>
+        <div class="callout green">
+          <h3>Suppression first</h3>
+          <p>DNC, opt-out, closed, funded elsewhere, bad contact, and no-consent records are held out before drafts are created.</p>
+        </div>
+        <div class="callout green">
+          <h3>Human commit boundary</h3>
+          <p>The workflow stages data. The user accepts before records become active contacts and opportunities.</p>
+        </div>
+        <div class="callout green">
+          <h3>Private raw archive</h3>
+          <p>Original imports are archived privately for audit and reprocessing. Clients do not receive public raw-file URLs.</p>
+        </div>
+        <div class="callout green">
+          <h3>PII-safe traces</h3>
+          <p>Workflow telemetry avoids names, emails, phones, note bodies, and draft text.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Production boundaries and trade-offs</h2>
+      <table>
+        <thead>
+          <tr><th>Decision</th><th>Why</th><th>Deferred alternative</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Polling Supabase for import progress</td>
+            <td>Survives browser refresh, instance restart, and preview/prod boundaries — progress is persisted, not held in memory.</td>
+            <td>Supabase Realtime or SSE for push-based progress when volume and UX justify it.</td>
+          </tr>
+          <tr>
+            <td>Durable Vercel Workflow for ingestion</td>
+            <td>Long-running, multi-phase, stateful work with step-level retries and disconnection survival — on one platform.</td>
+            <td>Batched AI sub-steps and Vercel Queues for burst buffering at higher volume; Sandbox to isolate untrusted file parsing.</td>
+          </tr>
+          <tr>
+            <td>No automated outbound messaging</td>
+            <td>Compliance and trust. The product is a human-approved recovery layer.</td>
+            <td>Future integrations with explicit consent, audit logs, and broker controls.</td>
+          </tr>
+          <tr>
+            <td>No heavy CI/CD scaffold yet</td>
+            <td>The interview and sales need a small, deep, defensible product now.</td>
+            <td>Broader CI, load tests, and integration environments after pilot traction.</td>
+          </tr>
+          <tr>
+            <td>Legacy XLS not supported</td>
+            <td>Binary XLS parsers introduce avoidable dependency risk. XLSX/CSV/TSV are acceptable in V1.</td>
+            <td>Enterprise-specific parser support after a customer requires it.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Enterprise customer pitch</h2>
+      <div class="script">
+        <p>
+          "This is a safe recovery layer, not a CRM replacement. Your team imports stale leads, old applications, referrals, dead deals, and suppression lists. The app archives the raw data privately, processes it in a durable workflow that survives disconnects, stages clean rows for human review, and creates a daily queue only after acceptance. AI helps summarize messy journeys, but deterministic rules own suppression, dedupe, and final writes. That means the business value is recovered conversations, while the technical posture stays auditable and human-supervised."
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>What I would say if asked "why these platform choices?"</h2>
+      <div class="stack">
+        <div class="callout">
+          <h3>Why Vercel?</h3>
+          <p>It is the best product surface for a Next.js app: fast preview deployments, App Router fluency, analytics, speed insights, Blob, AI SDK/Gateway, and OpenTelemetry in the same operational ecosystem.</p>
+        </div>
+        <div class="callout">
+          <h3>Why Supabase?</h3>
+          <p>Auth, Postgres, RLS, and Storage-adjacent patterns make it fast to ship a multi-tenant MVP without building identity or permissions from scratch.</p>
+        </div>
+        <div class="callout">
+          <h3>Why Vercel Workflows (and not a container)?</h3>
+          <p>Ingestion needs durability and state, not just compute. Workflows give resumable, step-level execution that survives disconnects — on the same platform as the product surface, with no second deploy target. I evaluated an external container and chose Workflows on merits.</p>
+        </div>
+        <div class="callout">
+          <h3>Why not build every Vercel feature?</h3>
+          <p>Platform understanding includes restraint. Vercel Sandbox (untrusted-file hardening), Queues (burst buffering), and finer AI batching are the next steps, called out where they'd earn their place — but the current product needs imports, review, daily work, auditability, and proof of value.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Code map</h2>
+      <table>
+        <thead>
+          <tr><th>Area</th><th>Path</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Signup and onboarding</td><td><code>src/app/signup</code>, <code>src/app/onboarding</code></td><td>New users enter the product and create a workspace.</td></tr>
+          <tr><td>Import route</td><td><code>src/app/api/imports/route.ts</code></td><td>Accepts upload/paste, archives raw data, creates job rows, triggers the workflow with <code>start()</code>.</td></tr>
+          <tr><td>Import workflow</td><td><code>src/workflows/import-workflow.ts</code></td><td><code>use workflow</code> orchestrator + two <code>use step</code> phases (parse, analyze/AI/stage).</td></tr>
+          <tr><td>Pipeline logic</td><td><code>src/lib/import-pipeline/</code></td><td>Parsers, normalize, dedupe, suppress, AI reconstruct, stage — full Node, runs inside the steps.</td></tr>
+          <tr><td>Import progress</td><td><code>src/components/import-progress.tsx</code></td><td>Polls status and displays workflow phases; resumes against persisted progress.</td></tr>
+          <tr><td>Accept import</td><td><code>src/app/actions.ts</code></td><td>Commits staged rows into canonical records after human review.</td></tr>
+          <tr><td>Auth + provisioning</td><td><code>src/app/auth/demo-login/route.ts</code>, <code>src/lib/provision.ts</code></td><td>Email sign-in auto-provisions an isolated, seeded workspace; returning emails resolve to the same one.</td></tr>
+          <tr><td>Perf layer</td><td><code>src/lib/supabase-server.ts</code>, <code>src/lib/data.ts</code>, <code>src/lib/middleware.ts</code></td><td>Local <code>getClaims()</code> session verification + <code>React.cache()</code> de-duplication.</td></tr>
+          <tr><td>Eval suite</td><td><code>evals/run.mts</code></td><td><code>npm run eval</code>: parser fixtures + journey/hallucination regression against the live pipeline.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <h2>Interview close</h2>
+      <div class="script">
+        <p>
+          "The point of this build is not that I used every feature available. The point is that I drew the boundaries carefully. Vercel owns the product surface, the durable ingestion workflow, the AI platform, observability, and previews. Supabase owns tenancy, RLS, and source-of-truth state. AI is useful where messy human notes need interpretation, but it is not trusted with suppression, final writes, or outbound communication. And the performance work is honest: I removed round-trips and streamed the shell rather than caching data that is genuinely per-user. The result is a product that is sellable to a broker today and architecturally honest enough to defend in an enterprise conversation."
+        </p>
+      </div>
+    </section>
+
+    <p class="footer">Pipeline Recovery OS architecture brief. Synthetic demo data only. No outbound sending in V1.</p>
+  </main>
+</body>
+</html>
