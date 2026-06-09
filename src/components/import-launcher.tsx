@@ -66,15 +66,18 @@ export function ImportLauncher({
         formData.set("source_kind", textSourceKind);
         formData.set("text", text);
         const response = await fetch("/api/imports", { method: "POST", body: formData });
-        const result = (await response.json()) as { redirectTo?: string; error?: string };
+        const result = (await response.json()) as { importId?: string; redirectTo?: string; error?: string };
         if (!response.ok || !result.redirectTo) throw new Error(result.error ?? "Could not start the import.");
-        router.push(result.redirectTo);
+        // During onboarding, land on the imports list (live status of all files)
+        // so a first-time user can see what's happening; otherwise the focused
+        // single-import progress screen.
+        router.push(onboarding ? "/imports" : result.redirectTo);
         return;
       }
 
       // Each file becomes its own import + durable workflow, processed in parallel.
       const importIds = await Promise.all(files.map((item) => startImport(item.file, item.sourceKind)));
-      router.push(importIds.length === 1 ? `/imports/${importIds[0]}/processing` : "/imports");
+      router.push(onboarding || importIds.length !== 1 ? "/imports" : `/imports/${importIds[0]}/processing`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not start the import.");
       setLoading(false);

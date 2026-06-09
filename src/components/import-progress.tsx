@@ -28,7 +28,7 @@ type ImportStatusResponse = {
 };
 
 const phases = [
-  ["queued", "Queued", "Waiting for the Railway import worker."],
+  ["queued", "Queued", "Waiting for the import workflow to pick up the file."],
   ["archived", "Archived", "Raw file archived privately for audit and reprocessing."],
   ["reading_file", "Reading file", "Finding rows, text, sheets, and source format."],
   ["parsing", "Parsing", "Extracting structured rows from the uploaded data."],
@@ -110,7 +110,7 @@ export function ImportProgress({ importId }: { importId: string }) {
 
       {status?.failed ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-800">
-          Import failed: {status.job?.error_message ?? status.import?.error_message ?? "Unknown worker error"}
+          Import failed: {status.job?.error_message ?? status.import?.error_message ?? "Unknown error"}
         </div>
       ) : null}
       {error ? <p className="text-sm text-rose-700">{error}</p> : null}

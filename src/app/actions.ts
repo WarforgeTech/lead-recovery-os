@@ -758,7 +758,10 @@ export async function acceptStagedImport(formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/leads");
   revalidatePath("/imports");
-  redirect("/dashboard");
+  // Return to the imports list, which now shows this import with a green
+  // "Imported" check — so the user can see it completed before moving on to the
+  // queue (rather than being dropped on the dashboard with no confirmation).
+  redirect("/imports");
 }
 
 function field(formData: FormData, key: string) {

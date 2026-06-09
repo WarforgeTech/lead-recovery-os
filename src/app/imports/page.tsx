@@ -1,9 +1,10 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Card, PrimaryLink, Shell } from "@/components/ui";
+import { ImportsList, type ImportRow } from "@/components/imports-list";
 import { getActiveOrganizationId, requireUser } from "@/lib/data";
 import { createClient } from "@/lib/supabase-server";
-import { formatDateTime } from "@/lib/format";
-import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function ImportsPage() {
   await requireUser();
@@ -12,30 +13,21 @@ export default async function ImportsPage() {
   const supabase = await createClient();
   const { data: imports, error } = await supabase
     .from("imports")
-    .select("id, source_filename, source_kind, workflow_status, workflow_percent, ready_rows, problem_rows, suppressed_rows, created_at")
+    .select("id, source_filename, source_kind, workflow_status, workflow_percent, workflow_eta_seconds, ready_rows, problem_rows, suppressed_rows, created_at")
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false });
   if (error) throw error;
 
   return (
     <Shell title="Imports" actions={<PrimaryLink href="/imports/new">Import leads</PrimaryLink>}>
+      <p className="mb-4 text-sm leading-6 text-zinc-600">
+        Each file shows live status — <span className="font-medium text-zinc-900">Importing</span> while it’s being
+        cleaned, <span className="font-medium text-amber-800">Ready to review</span> when it needs your approval, and
+        a green <span className="font-medium text-emerald-700">✓ Imported</span> once its leads are in Today’s queue.
+      </p>
       <Card>
-        <div className="divide-y divide-zinc-100">
-          {(imports ?? []).map((item) => (
-            <Link key={item.id} href={`/imports/${item.id}`} className="grid gap-2 py-4 hover:bg-zinc-50 md:grid-cols-[1fr_auto]">
-              <div>
-                <div className="font-medium text-zinc-950">{item.source_filename ?? "Untitled import"}</div>
-                <div className="mt-1 text-sm text-zinc-600">
-                  {item.source_kind} · {item.workflow_status} · {formatDateTime(item.created_at)}
-                </div>
-              </div>
-              <div className="text-sm text-zinc-600">
-                {item.ready_rows} ready · {item.problem_rows} review · {item.suppressed_rows} suppressed
-              </div>
-            </Link>
-          ))}
-          {imports?.length ? null : <p className="py-8 text-sm text-zinc-600">No imports yet. Start by uploading or pasting inactive leads.</p>}
-        </div>
+        {/* Client component: polls each working import so the cells update live. */}
+        <ImportsList imports={(imports ?? []) as ImportRow[]} />
       </Card>
     </Shell>
   );
