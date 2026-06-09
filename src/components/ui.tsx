@@ -7,6 +7,10 @@ export function Card({
   return <section className={`rounded-lg border border-zinc-200 bg-white p-5 shadow-sm ${className}`}>{children}</section>;
 }
 
+export function Skeleton({ className = "" }: Readonly<{ className?: string }>) {
+  return <div className={`animate-pulse rounded-md bg-zinc-200/80 ${className}`} />;
+}
+
 export function Stat({
   label,
   value,
@@ -77,6 +81,7 @@ export function Shell({
           </Link>
           <nav className="flex flex-wrap items-center gap-3 text-sm text-zinc-600">
             <Link href="/dashboard" className="hover:text-zinc-950">Today</Link>
+            <Link href="/imports" className="hover:text-zinc-950">Imports</Link>
             <Link href="/leads" className="hover:text-zinc-950">Contacts</Link>
             <Link href="/reports" className="hover:text-zinc-950">Reports</Link>
             <Link href="/exports" className="hover:text-zinc-950">Exports</Link>

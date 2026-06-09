@@ -1,26 +1,19 @@
-import Link from "next/link";
 import { signOut } from "@/app/actions";
 import { DailyDumpBox } from "@/components/daily-dump-box";
+import { DashboardQueue } from "@/components/dashboard-queue";
 import { LeadWorkCard } from "@/components/lead-work-card";
 import { Card, Shell, Stat } from "@/components/ui";
 import { getActiveWorkspaceView, metadataNumber, metadataText } from "@/lib/workspace-view";
-import { filterForStage, isDue, matchesWorkflowFilter, workflowFilters, type WorkflowFilter } from "@/lib/mortgage-workflow";
+import { filterForStage, isDue } from "@/lib/mortgage-workflow";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ filter?: WorkflowFilter }>;
-}) {
-  const params = await searchParams;
-  const filter = workflowFilters.some((item) => item.id === params.filter) ? params.filter! : "all";
+export default async function DashboardPage() {
   const { organizationId, organization, template, opportunities } = await getActiveWorkspaceView();
   const isMortgage = template.id === "mortgage_growth";
   const due = opportunities
     .filter((item) => isDue(item.next_follow_up_at ?? metadataText(item, "next_due_at"), item.status))
     .sort((a, b) => b.priority_score - a.priority_score);
-  const filtered = due.filter((item) => matchesWorkflowFilter(item, filter));
   const hotAtRisk = due.filter((item) => (metadataNumber(item, "days_since_last_meaningful_contact") ?? 0) >= 14).length;
   const applicationFollowUps = due.filter((item) => filterForStage(metadataText(item, "pipeline_stage")) === "application").length;
   const repliesAppointments = opportunities.filter((item) => ["replied", "appointment_set"].includes(item.status)).length;
@@ -58,44 +51,7 @@ export default async function DashboardPage({
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
-        <div className="space-y-4">
-          <Card>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight">Work this list first</h2>
-                <p className="mt-2 text-sm leading-6 text-zinc-600">
-                  These are the people most likely to disappear unless Adam or Janine follows up today.
-                </p>
-              </div>
-              <Link
-                href="/leads"
-                className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-300 px-3 text-sm font-medium text-zinc-900 hover:bg-zinc-50"
-              >
-                Search contacts
-              </Link>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {workflowFilters.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.id === "all" ? "/dashboard" : `/dashboard?filter=${item.id}`}
-                  className={`rounded-md border px-3 py-2 text-sm ${
-                    filter === item.id ? "border-zinc-950 bg-zinc-950 text-white" : "border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </Card>
-
-          {filtered.map((item) => <LeadWorkCard key={item.id} item={item} />)}
-          {filtered.length === 0 ? (
-            <Card>
-              <p className="text-sm text-zinc-500">No contacts match this daily filter right now.</p>
-            </Card>
-          ) : null}
-        </div>
+        <DashboardQueue items={due} />
 
         <div className="space-y-6">
           <Card>

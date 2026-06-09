@@ -1,7 +1,10 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { requireEnv } from "./env";
+
+export type SessionUser = { id: string; email: string | null };
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -34,10 +37,15 @@ export function createAdminClient() {
   );
 }
 
-export async function getUser() {
+// Resolve the signed-in user from the request's JWT. We use getClaims() rather
+// than getUser() so verification happens locally via the cached JWKS (asymmetric
+// signing keys) instead of a network round-trip to the Auth server on every
+// render — the single biggest per-navigation latency win. React cache() dedupes
+// repeated calls within one request (requireUser, requireAdmin, workspace view).
+export const getUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
-}
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (error || !claims?.sub) return null;
+  return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+});

@@ -8,7 +8,7 @@ import { parseCsv, inferMapping, applyMapping, type Mapping } from "@/lib/csv";
 import { createAdminClient, createClient } from "@/lib/supabase-server";
 import { requireAdmin, requireUser } from "@/lib/data";
 import { traceAsync } from "@/lib/tracing";
-import type { OpportunityStatus } from "@/lib/types";
+import type { ConsentStatus, OpportunityStatus } from "@/lib/types";
 import { parseDailyDump } from "@/lib/daily-dump";
 import { applyWorkflowOutcome, type WorkflowOutcome } from "@/lib/mortgage-workflow";
 import {
@@ -16,6 +16,21 @@ import {
   defaultOrganizationSettings,
   getPipelineTemplateId,
 } from "@/lib/pipeline-templates";
+
+const ACCEPT_CONCURRENCY = 8;
+
+// Bounded-concurrency worker pool: runs `fn` over items with at most `limit`
+// in flight. Keeps the accept step fast without opening unbounded DB connections.
+async function mapWithConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+  let index = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const current = index++;
+      await fn(items[current]);
+    }
+  });
+  await Promise.all(workers);
+}
 
 export async function signOut() {
   const supabase = await createClient();
@@ -69,6 +84,62 @@ export async function createOrganization(formData: FormData) {
 
   revalidatePath("/admin");
   redirect(`/admin/organizations/${org.id}`);
+}
+
+export async function createSelfServeWorkspace(formData: FormData) {
+  const user = await requireUser();
+  const admin = createAdminClient();
+  const name = String(formData.get("name") ?? "").trim();
+  const clientType = String(formData.get("client_type") ?? "agent").trim();
+  const pipelineTemplate = getPipelineTemplateId(String(formData.get("pipeline_template") ?? "real_estate_default"));
+  const market = String(formData.get("market") ?? "").trim();
+  if (!name) throw new Error("Workspace name is required");
+  if (!user.email) throw new Error("User email is required");
+
+  await traceAsync("workspace.self_serve_create", { client_type: clientType, pipeline_template: pipelineTemplate }, async () => {
+    const { data: existing } = await admin
+      .from("organization_members")
+      .select("organization_id")
+      .or(`user_id.eq.${user.id},email.eq.${user.email!.toLowerCase()}`)
+      .limit(1)
+      .maybeSingle();
+    if (existing?.organization_id) return existing.organization_id;
+
+    const { data: org, error: orgError } = await admin
+      .from("organizations")
+      .insert({
+        name,
+        client_type: clientType,
+        pipeline_template: pipelineTemplate,
+        organization_settings: defaultOrganizationSettings(pipelineTemplate),
+        market,
+        status: "pilot",
+        notes: "Self-serve free workspace.",
+      })
+      .select("id")
+      .single();
+    if (orgError) throw orgError;
+
+    const { error: memberError } = await admin.from("organization_members").insert({
+      organization_id: org.id,
+      email: user.email!.toLowerCase(),
+      user_id: user.id,
+      role: "owner",
+    });
+    if (memberError) throw memberError;
+
+    await admin.from("activity_log").insert({
+      organization_id: org.id,
+      actor_user_id: user.id,
+      event: "self_serve_workspace_created",
+      metadata: { pipeline_template: pipelineTemplate, client_type: clientType },
+    });
+
+    return org.id;
+  });
+
+  revalidatePath("/dashboard");
+  redirect("/onboarding/import");
 }
 
 export async function addOrganizationMember(formData: FormData) {
@@ -497,7 +568,336 @@ export async function refineDraftWithAi(formData: FormData) {
   revalidatePath(`/leads/${opportunityId}`);
 }
 
+export async function acceptStagedImport(formData: FormData) {
+  const user = await requireUser();
+  const admin = createAdminClient();
+  const importId = String(formData.get("import_id") ?? "");
+  if (!importId) throw new Error("Import is required");
+
+  await traceAsync("import.accept", { import_id: importId }, async () => {
+    const { data: importRow, error: importError } = await admin
+      .from("imports")
+      .select("id, organization_id, source_kind, workflow_status, organization:organizations(pipeline_template)")
+      .eq("id", importId)
+      .single();
+    if (importError) throw importError;
+
+    const organizationId = importRow.organization_id;
+    await assertCanAcceptImport(admin, organizationId, user.id, user.email ?? "");
+
+    const { data: readyRows, error: readyError } = await admin
+      .from("import_rows")
+      .select("*")
+      .eq("import_id", importId)
+      .eq("review_status", "ready")
+      .order("row_number", { ascending: true });
+    if (readyError) throw readyError;
+
+    const { data: suppressedRows, error: suppressedError } = await admin
+      .from("import_rows")
+      .select("*")
+      .eq("import_id", importId)
+      .eq("review_status", "suppressed")
+      .order("row_number", { ascending: true });
+    if (suppressedError) throw suppressedError;
+
+    // Commit rows with bounded concurrency instead of one-at-a-time. Accepting a
+    // large import previously did hundreds of sequential round-trips (the "10s
+    // freeze"); parallelizing across rows collapses it to ~1-2s.
+    await mapWithConcurrency(suppressedRows ?? [], ACCEPT_CONCURRENCY, async (row) => {
+      const normalized = row.normalized_record as Record<string, unknown>;
+      await Promise.all([
+        admin.from("contact_exclusions").insert({
+          organization_id: organizationId,
+          contact_id: row.matched_contact_id,
+          kind: String(row.suppression_reason ?? "suppression").toLowerCase().includes("do not") ? "dnc" : "suppression",
+          email: stringOrNull(normalized.email),
+          phone: stringOrNull(normalized.phone),
+          normalized_name: stringOrNull(normalized.name)?.toLowerCase() ?? null,
+          reason: row.suppression_reason ?? "Suppressed during import review",
+          source_import_id: importId,
+          created_by: user.id,
+        }),
+        admin.from("import_merge_decisions").insert({
+          organization_id: organizationId,
+          import_id: importId,
+          import_row_id: row.id,
+          contact_id: row.matched_contact_id,
+          decision: "excluded",
+          reason: row.suppression_reason,
+          decided_by: user.id,
+        }),
+      ]);
+    });
+
+    const organization = Array.isArray(importRow.organization) ? importRow.organization[0] : importRow.organization;
+    const templateId = getPipelineTemplateId(organization?.pipeline_template);
+
+    await mapWithConcurrency(readyRows ?? [], ACCEPT_CONCURRENCY, async (row) => {
+      const normalized = row.normalized_record as Record<string, unknown>;
+      const journey = row.journey as Record<string, unknown>;
+      const existingContactId = stringOrNull(row.matched_contact_id);
+      const contactConsent: ConsentStatus = normalized.consent === "do_not_contact" ? "do_not_contact" : normalized.consent === "review" ? "review" : "ok";
+      const contactPayload = {
+        organization_id: organizationId,
+        import_id: importId,
+        name: stringOrNull(normalized.name) ?? "Imported Lead",
+        email: stringOrNull(normalized.email),
+        phone: stringOrNull(normalized.phone),
+        source: stringOrNull(normalized.source),
+        lead_type: stringOrNull(normalized.status) ?? stringOrNull(normalized.stage),
+        area: null,
+        price_range: normalized.estimatedValue ? `$${normalized.estimatedValue}` : null,
+        timeline: null,
+        last_contact_at: stringOrNull(normalized.lastContactAt),
+        consent: contactConsent,
+        owner_name: stringOrNull(normalized.owner),
+        raw_notes: stringOrNull(normalized.notes),
+        normalized_summary: stringOrNull(journey.summary) ?? stringOrNull(normalized.notes) ?? "Imported lead record.",
+        pipeline_metadata: {
+          imported_stage: stringOrNull(normalized.stage),
+          journey,
+          source_kind: stringOrNull(normalized.sourceKind),
+        },
+      };
+
+      // Contact must exist before its dependent rows; everything after is independent.
+      const contactId = existingContactId
+        ? await updateExistingContact(admin, existingContactId, contactPayload)
+        : await insertNewContact(admin, contactPayload);
+
+      const classification = classifyPipelineOpportunity({
+        name: contactPayload.name,
+        email: contactPayload.email,
+        phone: contactPayload.phone,
+        source: contactPayload.source,
+        leadType: contactPayload.lead_type,
+        area: null,
+        priceRange: contactPayload.price_range,
+        timeline: null,
+        lastContactAt: contactPayload.last_contact_at,
+        consent: contactPayload.consent,
+        ownerName: contactPayload.owner_name,
+        rawNotes: contactPayload.raw_notes,
+        normalizedSummary: contactPayload.normalized_summary,
+        pipelineMetadata: {
+          current_status: stringOrNull(normalized.status),
+          estimated_loan_amount: Number(normalized.estimatedValue) || null,
+          missing_next_step: stringOrNull(journey.nextStep),
+          last_meaningful_contact: contactPayload.last_contact_at,
+          imported_stage: stringOrNull(normalized.stage),
+        },
+      }, templateId);
+
+      const eventRows = (Array.isArray(journey.events) ? journey.events : [])
+        .map((event) => event as Record<string, unknown>)
+        .filter((item) => stringOrNull(item.summary))
+        .map((item) => ({
+          organization_id: organizationId,
+          contact_id: contactId,
+          import_id: importId,
+          event_date: stringOrNull(item.eventDate),
+          event_type: stringOrNull(item.eventType) ?? "imported_touchpoint",
+          source: stringOrNull(item.source),
+          summary: stringOrNull(item.summary),
+          confidence: stringOrNull(item.confidence) ?? row.confidence,
+          raw_refs: { import_row_id: row.id, row_number: row.row_number },
+        }));
+
+      await Promise.all([
+        upsertIdentity(admin, organizationId, contactId, "email", stringOrNull(normalized.email), importId),
+        upsertIdentity(admin, organizationId, contactId, "phone", stringOrNull(normalized.phone), importId),
+        upsertIdentity(admin, organizationId, contactId, "name_source", `${stringOrNull(normalized.name)?.toLowerCase() ?? ""}:${stringOrNull(normalized.source)?.toLowerCase() ?? ""}`, importId),
+        eventRows.length ? admin.from("contact_journey_events").insert(eventRows) : Promise.resolve(),
+        (async () => {
+          const opportunityId = await upsertOpportunity(admin, organizationId, contactId, classification);
+          if (classification.draftText) {
+            await upsertDraft(admin, organizationId, contactId, opportunityId, classification.draftText);
+          }
+        })(),
+        admin.from("import_merge_decisions").insert({
+          organization_id: organizationId,
+          import_id: importId,
+          import_row_id: row.id,
+          contact_id: contactId,
+          decision: existingContactId ? "merge" : "create",
+          reason: row.proposed_action,
+          decided_by: user.id,
+          metadata: { dedupe_key: row.dedupe_key },
+        }),
+      ]);
+    });
+
+    await admin.from("imports").update({
+      workflow_status: "accepted",
+      workflow_phase: "accepted",
+      workflow_percent: 100,
+      accepted_by: user.id,
+      accepted_at: new Date().toISOString(),
+    }).eq("id", importId);
+
+    await admin.from("import_jobs").update({
+      status: "accepted",
+      phase: "accepted",
+      percent: 100,
+      completed_at: new Date().toISOString(),
+    }).eq("import_id", importId);
+
+    await admin.from("activity_log").insert({
+      organization_id: organizationId,
+      actor_user_id: user.id,
+      event: "self_serve_import_accepted",
+      metadata: {
+        import_id: importId,
+        ready: readyRows?.length ?? 0,
+        suppressed: suppressedRows?.length ?? 0,
+      },
+    });
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/leads");
+  revalidatePath("/imports");
+  redirect("/dashboard");
+}
+
 function field(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
   return value || undefined;
+}
+
+async function assertCanAcceptImport(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  userId: string,
+  email: string,
+) {
+  const { data, error } = await admin
+    .from("organization_members")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .in("role", ["owner", "admin"])
+    .or(`user_id.eq.${userId},email.eq.${email.toLowerCase()}`)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("You do not have permission to accept this import.");
+}
+
+function stringOrNull(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
+async function insertNewContact(admin: ReturnType<typeof createAdminClient>, payload: Record<string, unknown>) {
+  const { data, error } = await admin.from("contacts").insert(payload).select("id").single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+async function updateExistingContact(admin: ReturnType<typeof createAdminClient>, contactId: string, payload: Record<string, unknown>) {
+  const { data, error } = await admin
+    .from("contacts")
+    .update({
+      source: payload.source,
+      lead_type: payload.lead_type,
+      last_contact_at: payload.last_contact_at,
+      owner_name: payload.owner_name,
+      raw_notes: payload.raw_notes,
+      normalized_summary: payload.normalized_summary,
+      pipeline_metadata: payload.pipeline_metadata,
+    })
+    .eq("id", contactId)
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+async function upsertIdentity(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  contactId: string,
+  kind: string,
+  normalizedValue: string | null,
+  importId: string,
+) {
+  if (!normalizedValue) return;
+  await admin.from("contact_identities").upsert({
+    organization_id: organizationId,
+    contact_id: contactId,
+    kind,
+    normalized_value: normalizedValue,
+    confidence: "high",
+    source_import_id: importId,
+  }, { onConflict: "organization_id,kind,normalized_value" });
+}
+
+async function upsertOpportunity(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  contactId: string,
+  classification: ReturnType<typeof classifyPipelineOpportunity>,
+) {
+  const { data: existing } = await admin
+    .from("lead_opportunities")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("contact_id", contactId)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    const { data, error } = await admin
+      .from("lead_opportunities")
+      .update({
+        segment: classification.segment,
+        status: classification.status,
+        priority_score: classification.priorityScore,
+        estimated_value_cents: classification.estimatedValueCents,
+        recommended_action: classification.recommendedAction,
+        pipeline_metadata: classification.opportunityMetadata,
+      })
+      .eq("id", existing.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data.id as string;
+  }
+
+  const { data, error } = await admin.from("lead_opportunities").insert({
+    organization_id: organizationId,
+    contact_id: contactId,
+    segment: classification.segment,
+    status: classification.status,
+    priority_score: classification.priorityScore,
+    estimated_value_cents: classification.estimatedValueCents,
+    recommended_action: classification.recommendedAction,
+    pipeline_metadata: classification.opportunityMetadata,
+  }).select("id").single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+async function upsertDraft(
+  admin: ReturnType<typeof createAdminClient>,
+  organizationId: string,
+  contactId: string,
+  opportunityId: string,
+  draftText: string,
+) {
+  const { data: existing } = await admin
+    .from("message_drafts")
+    .select("id")
+    .eq("opportunity_id", opportunityId)
+    .limit(1)
+    .maybeSingle();
+  if (existing?.id) {
+    await admin.from("message_drafts").update({ draft_text: draftText, approval_status: "draft" }).eq("id", existing.id);
+    return;
+  }
+  await admin.from("message_drafts").insert({
+    organization_id: organizationId,
+    contact_id: contactId,
+    opportunity_id: opportunityId,
+    draft_text: draftText,
+  });
 }

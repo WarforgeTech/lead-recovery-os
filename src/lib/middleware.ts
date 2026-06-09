@@ -21,6 +21,9 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  // getClaims() refreshes an expiring session and verifies the JWT locally via
+  // the cached JWKS (asymmetric keys) instead of an Auth-server round-trip on
+  // every request. Falls back to a network check only for symmetric secrets.
+  await supabase.auth.getClaims();
   return response;
 }

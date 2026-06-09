@@ -6,5 +6,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // Run session refresh only on page navigations. Excluding API routes keeps the
+  // 1.5s import-status poll off the auth path, and excluding .well-known/workflow
+  // prevents the matcher from intercepting the Workflow DevKit's internal routes.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|api/|.well-known/workflow|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+  ],
 };

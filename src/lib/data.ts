@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { isAdminEmail } from "./env";
 import { createAdminClient, createClient, getUser } from "./supabase-server";
@@ -14,7 +15,10 @@ export async function requireAdmin() {
   return user;
 }
 
-export async function getMemberships() {
+// cache() dedupes the membership query within a single request. Several pages
+// resolve memberships twice (directly and via getActiveOrganizationId/workspace
+// view); without this that was a redundant Supabase round-trip per render.
+export const getMemberships = cache(async () => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("organization_members")
@@ -23,7 +27,7 @@ export async function getMemberships() {
 
   if (error) throw error;
   return data ?? [];
-}
+});
 
 export async function getActiveOrganizationId() {
   const memberships = await getMemberships();

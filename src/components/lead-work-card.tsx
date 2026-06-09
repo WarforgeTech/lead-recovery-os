@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { updateLeadOutcome } from "@/app/actions";
 import { Badge } from "@/components/ui";
 import { CopyValueButton } from "@/components/copy-value-button";
+import { SubmitButton } from "@/components/submit-button";
 import { cadenceLabel, stageLabel } from "@/lib/mortgage-workflow";
 import { statusLabels } from "@/lib/types";
 import { formatDate } from "@/lib/format";
@@ -152,8 +155,9 @@ function OutcomeButton({
       <input type="hidden" name="opportunity_id" value={opportunityId} />
       <input type="hidden" name="outcome" value={outcome} />
       {snoozeDays ? <input type="hidden" name="snooze_days" value={snoozeDays} /> : null}
-      <button
+      <SubmitButton
         title={help}
+        pendingLabel="Saving"
         className={`h-9 w-full rounded-md border px-2 text-xs font-medium ${
           danger
             ? "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100"
@@ -161,7 +165,7 @@ function OutcomeButton({
         }`}
       >
         {label}
-      </button>
+      </SubmitButton>
     </form>
   );
 }
