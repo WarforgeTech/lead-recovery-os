@@ -15,7 +15,8 @@
     "eval:ai": "tsx evals/run.mts ai",
     "qa:human": "node qa/human-flow.mjs",
     "qa:selfserve-import": "node qa/self-serve-import-flow.mjs",
-    "qa:prod": "node qa/prod-smoke.mjs"
+    "qa:prod": "node qa/prod-smoke.mjs",
+    "qa:hydration": "node qa/hydration-check.mjs"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.120",
