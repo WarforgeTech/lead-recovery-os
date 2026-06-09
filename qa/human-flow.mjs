@@ -11,7 +11,6 @@ const appUrl = cleanUrl(process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL |
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const adminEmail = process.env.QA_ADMIN_EMAIL || "mark@warforge.tech";
-const qaLoginSecret = process.env.QA_LOGIN_SECRET;
 const vercelProtectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS;
 const reviewerAccessCode = process.env.REVIEWER_ACCESS_CODE;
 const keepData = process.env.QA_KEEP_DATA === "1";
@@ -314,13 +313,7 @@ async function magicLink(email, nextPath) {
 }
 
 async function loginUrl(email, nextPath) {
-  if (qaLoginSecret) {
-    const url = new URL(`${appUrl}/auth/qa-login`);
-    url.searchParams.set("secret", qaLoginSecret);
-    url.searchParams.set("email", email);
-    url.searchParams.set("next", nextPath);
-    return url.toString();
-  }
+  // Logs in via a real Supabase magic-link action URL (no app backdoor route).
   return magicLink(email, nextPath);
 }
 

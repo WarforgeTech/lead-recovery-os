@@ -1,0 +1,11 @@
+[
+  {
+    "name": "Avery Stone",
+    "email": "avery@example.com",
+    "phone": "713-555-4444",
+    "source": "Open house",
+    "status": "old buyer",
+    "notes": "Asked about Spring Branch homes, went quiet after one follow-up.",
+    "consent": "opt-in"
+  }
+]

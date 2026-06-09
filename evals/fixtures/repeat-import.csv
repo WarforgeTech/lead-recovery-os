@@ -1,0 +1,3 @@
+name,email,phone,source,current status,last meaningful contact,assigned owner,notes,consent
+Jordan Miles,jordan@example.com,7135550201,Realtor referral,application started,05/24/2026,Janine,"Started app after resend but has not submitted.",opt-in
+New Lead,newlead@example.com,8325550100,Facebook message,new referral,05/25/2026,Adam,"Asked about FHA purchase path.",opt-in

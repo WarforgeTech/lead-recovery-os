@@ -1,0 +1,6 @@
+Full Name,E-mail,Cell,Lead Source,Pipeline Status,Last Meaningful Contact,Owner,Notes,Consent
+ Jordan Miles , jordan@example.com ,(713) 555-0201,Realtor referral,application link sent,05/14/2026,Adam,"Purchase consult complete. Link sent. No application started.",opt-in
+Jordan M.,jordan@example.com,713.555.0201,Text message,no application started,05/21/2026,Adam,"Asked for link again. Hot but slipping.",opt-in
+Nina Alvarez,nina@example.com,346-555-0205,Phone consult,docs missing,05/03/2026,Janine,"Confused by bank statement upload and signatures.",opt-in
+Bad Row,,,,,,,"No phone or email",review
+Stop Person,stop@example.com,832-555-9090,Old CRM,STOP,04/01/2026,Adam,"Unsubscribe. Do not contact.",do not contact

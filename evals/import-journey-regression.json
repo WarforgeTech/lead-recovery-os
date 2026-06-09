@@ -1,0 +1,36 @@
+[
+  {
+    "id": "mortgage-duplicate-touchpoints",
+    "inputRows": [
+      "Jordan Miles jordan@example.com 713-555-0201 Realtor referral May 14: Adam sent application link after purchase consult.",
+      "Jordan Miles 7135550201 May 21: no application started, asked if link could be resent."
+    ],
+    "expected": {
+      "stage": "application_sent_not_started",
+      "mustMention": ["application", "link"],
+      "mustNotInvent": ["appointment set", "closed", "funded"]
+    }
+  },
+  {
+    "id": "do-not-contact-suppression",
+    "inputRows": [
+      "Nina Alvarez nina@example.com STOP texting me, unsubscribe, do not contact."
+    ],
+    "expected": {
+      "stage": "needs_consent",
+      "mustMention": ["do not contact"],
+      "mustNotInvent": ["application submitted", "appointment"]
+    }
+  },
+  {
+    "id": "docs-stuck",
+    "inputRows": [
+      "Taylor Reed taylor@example.com started app but stuck on bank statements and e-signature upload. Last contact 05/08/2026."
+    ],
+    "expected": {
+      "stage": "docs_needed_preapproval_stuck",
+      "mustMention": ["bank", "signature"],
+      "mustNotInvent": ["declined", "funded"]
+    }
+  }
+]

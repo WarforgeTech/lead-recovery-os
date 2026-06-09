@@ -1,0 +1,4 @@
+name,email,phone,status,notes,consent
+Stop Person,stop@example.com,8325559090,DNC,"Said STOP by text.",do not contact
+Morgan Lee,,7135551111,Funded elsewhere,"Closed with another lender, no follow-up.",no consent
+Closed Client,closed@example.com,2815553333,Past client,"Closed in 2023 but okay to check in annually.",opt-in
