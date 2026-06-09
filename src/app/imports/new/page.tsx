@@ -14,7 +14,7 @@ export default async function NewSelfServeImportPage() {
         <Card>
           <h2 className="text-lg font-semibold tracking-tight text-zinc-950">How this works</h2>
           <div className="mt-4 space-y-3 text-sm leading-6 text-zinc-600">
-            <p>Upload or paste the messy lead file. The Railway worker handles parsing and cleanup outside the Vercel app runtime.</p>
+            <p>Upload or paste the messy lead file. A durable Vercel Workflow handles parsing and cleanup in the background, so it keeps running even if you close this tab.</p>
             <p>Do-not-contact, opt-out, closed, and duplicate records are held out before drafts or queue items are created.</p>
             <p>You approve the cleaned import before anything enters Today’s Follow-Up Queue.</p>
           </div>
