@@ -1,5 +1,5 @@
 import { signOut } from "@/app/actions";
-import { Card } from "@/components/ui";
+import { Card, PrimaryLink } from "@/components/ui";
 
 export default function NoWorkspacePage() {
   return (
@@ -7,14 +7,17 @@ export default function NoWorkspacePage() {
       <Card className="max-w-lg">
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-950">No workspace assigned</h1>
         <p className="mt-3 text-sm leading-6 text-zinc-600">
-          This login is valid, but it is not attached to a Pipeline Recovery OS workspace yet. Ask Mark to add this
-          email to the client organization.
+          This login is valid, but it is not attached to a Pipeline Recovery OS workspace yet. You can create one now
+          and start by importing your inactive lead file.
         </p>
-        <form action={signOut} className="mt-6">
-          <button className="h-10 rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50">
-            Sign out
-          </button>
-        </form>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <PrimaryLink href="/onboarding/profile">Create workspace</PrimaryLink>
+          <form action={signOut}>
+            <button className="h-11 rounded-md border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50">
+              Sign out
+            </button>
+          </form>
+        </div>
       </Card>
     </main>
   );

@@ -19,15 +19,40 @@ export async function archiveImportCsv({
   sourceFilename: string;
   csvText: string;
 }): Promise<ImportArchiveResult> {
+  return archiveImportContent({
+    admin,
+    organizationId,
+    sourceFilename,
+    body: csvText,
+    contentType: "text/csv",
+  });
+}
+
+export async function archiveImportContent({
+  admin,
+  organizationId,
+  sourceFilename,
+  body,
+  contentType,
+  importId,
+}: {
+  admin: SupabaseClient;
+  organizationId: string;
+  sourceFilename: string;
+  body: string | Buffer;
+  contentType: string;
+  importId?: string;
+}): Promise<ImportArchiveResult> {
   const safeFilename = sourceFilename.replace(/[^a-z0-9._-]/gi, "-");
-  const path = `${organizationId}/${Date.now()}-${safeFilename}`;
+  const prefix = importId ? `${organizationId}/${importId}` : organizationId;
+  const path = `${prefix}/${Date.now()}-${safeFilename}`;
   const archivedAt = new Date().toISOString();
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const blob = await put(path, csvText, {
+      const blob = await put(path, body, {
         access: "private",
-        contentType: "text/csv",
+        contentType,
         addRandomSuffix: false,
       });
       return {
@@ -41,8 +66,9 @@ export async function archiveImportCsv({
     }
   }
 
-  const { error } = await admin.storage.from("raw-imports").upload(path, new Blob([csvText], { type: "text/csv" }), {
-    contentType: "text/csv",
+  const blobPart: BlobPart = typeof body === "string" ? body : body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) as ArrayBuffer;
+  const { error } = await admin.storage.from("raw-imports").upload(path, new Blob([blobPart], { type: contentType }), {
+    contentType,
     upsert: true,
   });
 

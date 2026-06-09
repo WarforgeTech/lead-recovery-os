@@ -24,7 +24,7 @@ export type DailyDumpResult = {
 };
 
 export function dailyDumpAiEnabled() {
-  return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
+  return Boolean(process.env.AI_GATEWAY_API_KEY);
 }
 
 export async function parseDailyDump(input: string, contacts: DailyDumpContact[]): Promise<DailyDumpResult> {
@@ -91,7 +91,10 @@ function normalizeParsedDump(text: string, contacts: DailyDumpContact[]): DailyD
 }
 
 function fallbackParseDailyDump(input: string, contacts: DailyDumpContact[]): DailyDumpResult {
-  const lines = input.split(/\n|;/).map((line) => line.trim()).filter(Boolean);
+  const lines = input
+    .split(/\n|;|(?<=[.!?])\s+(?=[A-Z])/)
+    .map((line) => line.trim().replace(/[.!?]+$/, ""))
+    .filter(Boolean);
   const updates: DailyDumpUpdate[] = [];
   const unmatched: DailyDumpResult["unmatched"] = [];
   for (const line of lines) {
@@ -113,7 +116,7 @@ function fallbackParseDailyDump(input: string, contacts: DailyDumpContact[]): Da
 
 function inferOutcome(text: string): WorkflowOutcome {
   const value = text.toLowerCase();
-  if (/(appointment|meeting|call booked|scheduled|set)/.test(value)) return "appointment_set";
+  if (/(appointment|meeting|call booked|booked (a )?(call|review)|scheduled|set a call|set an appointment)/.test(value)) return "appointment_set";
   if (/(submitted|finished app|completed app|application complete)/.test(value)) return "application_submitted";
   if (/(replied|responded|texted back|called back)/.test(value)) return "replied";
   if (/(no response|didn't respond|did not respond|left voicemail|no reply)/.test(value)) return "no_response";

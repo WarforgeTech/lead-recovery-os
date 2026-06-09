@@ -426,6 +426,13 @@ const reviewerContacts: ImportContact[] = [
   },
 ];
 
+// Seed an arbitrary workspace with the synthetic mortgage dataset. Reused for
+// self-serve demo accounts so a new email lands on a populated dashboard. Same
+// idempotent insert path as the reviewer sandbox (keyed by seed version).
+export async function seedDemoMortgageContacts(admin: SupabaseClient, organizationId: string) {
+  await ensureReviewerContacts(admin, organizationId);
+}
+
 export async function ensureReviewerDemoWorkspace(admin: SupabaseClient) {
   const { data: existingOrg, error: existingError } = await admin
     .from("organizations")

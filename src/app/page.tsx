@@ -8,7 +8,7 @@ export default function Home() {
           <div className="font-semibold tracking-tight">Pipeline Recovery OS</div>
           <div className="flex gap-3">
             <SecondaryLink href="/login">Client login</SecondaryLink>
-            <PrimaryLink href="/demo">View demo</PrimaryLink>
+            <PrimaryLink href="/signup">Start free</PrimaryLink>
           </div>
         </div>
       </header>
@@ -24,8 +24,8 @@ export default function Home() {
             opportunities sitting untouched, then turns them into human-approved messages.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <PrimaryLink href="/demo">Try the public demo</PrimaryLink>
-            <SecondaryLink href="/login">Open client portal</SecondaryLink>
+            <PrimaryLink href="/signup">Start with your lead file</PrimaryLink>
+            <SecondaryLink href="/demo">View demo</SecondaryLink>
           </div>
         </div>
         <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-6">
@@ -43,7 +43,7 @@ export default function Home() {
             ))}
           </div>
           <p className="mt-5 text-sm leading-6 text-zinc-600">
-            No outbound sending in v1. Clients review, edit, approve, and export the queue.
+            No outbound sending in v1. Upload the messy export, review the cleaned queue, then approve what your team should work.
           </p>
         </div>
       </section>

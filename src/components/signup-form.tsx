@@ -1,12 +1,12 @@
-export function LoginForm() {
+export function SignupForm() {
   return (
     <form action="/auth/demo-login" method="post" className="space-y-4">
       <input type="hidden" name="next" value="/dashboard" />
-      <label className="block text-sm font-medium text-zinc-800" htmlFor="email">
-        Email address
+      <label className="block text-sm font-medium text-zinc-800" htmlFor="signup-email">
+        Work email
       </label>
       <input
-        id="email"
+        id="signup-email"
         name="email"
         type="email"
         required
@@ -17,10 +17,10 @@ export function LoginForm() {
         type="submit"
         className="h-11 w-full rounded-md bg-zinc-950 px-4 text-sm font-medium text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Continue to workspace
+        Enter my workspace
       </button>
       <p className="text-sm leading-6 text-zinc-500">
-        Demo mode is enabled today. No email verification is required.
+        Demo mode: enter any email and you’ll land on your own workspace instantly — no password, no verification.
       </p>
     </form>
   );

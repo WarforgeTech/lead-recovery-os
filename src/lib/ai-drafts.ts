@@ -14,7 +14,7 @@ export type RefineDraftInput = {
 export function aiDraftsEnabled() {
   return Boolean(
     process.env.ENABLE_AI_DRAFT_REFINEMENT === "1" &&
-      (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL),
+      process.env.AI_GATEWAY_API_KEY,
   );
 }
 
