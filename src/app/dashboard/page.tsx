@@ -6,6 +6,13 @@ import { Card, Shell, Stat } from "@/components/ui";
 import { getActiveWorkspaceView, metadataNumber, metadataText } from "@/lib/workspace-view";
 import { filterForStage, isDue } from "@/lib/mortgage-workflow";
 
+// Rendering decision (Track A): this view is per-user, per-organization, live
+// follow-up data — there is no shared output that is safe to cache or prerender
+// across users or requests, so we render it dynamically on demand. The public
+// marketing route (`/`) is the opposite: fully static and CDN-cached. We use
+// force-dynamic deliberately where the data is genuinely request-scoped, not by
+// default. (Filtering this list is then done client-side — see DashboardQueue —
+// so changing a filter does not pay another server round-trip.)
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {

@@ -25,6 +25,15 @@ export function aiImportEnabled() {
   return Boolean(process.env.AI_GATEWAY_API_KEY);
 }
 
+// AI design decisions:
+// - Model access goes through the Vercel AI Gateway (`gateway("provider/model")`)
+//   rather than a provider-specific SDK, so the provider/model is a one-line swap
+//   and we get the gateway's observability + key management.
+// - AI is an *assist*, never a hard dependency: every call has a deterministic
+//   `fallbackJourney`, and we only spend a model call on groups that need it
+//   (see shouldUseAi) to keep token cost down. Sonnet (not Opus) is the
+//   deliberate cost/quality choice for this high-volume, language-heavy step.
+
 export async function reconstructJourney({
   admin,
   organizationId,
